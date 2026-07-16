@@ -68,6 +68,7 @@ export function ControlView({
   };
   const busy = next.isPending || skip.isPending || revealMut.isPending;
   const selectedIds = pool.data?.moduleIds ?? [];
+  const noModules = selectedIds.length === 0; // can't start or draw a question without a module
   const voteFor = (optionId: string) => (votes?.questionId === question?.id ? (votes?.counts[optionId] ?? 0) : 0);
   const voteTotal = votes && votes.questionId === question?.id ? votes.total : 0;
   const statusText = state
@@ -131,13 +132,13 @@ export function ControlView({
 
         <div className="row" style={{ marginTop: 12 }}>
           {!started ? (
-            <IonButton onClick={() => next.mutate()} disabled={busy}>
+            <IonButton onClick={() => next.mutate()} disabled={busy || noModules}>
               <IonIcon slot="start" icon={playForwardOutline} />
               Start game
             </IonButton>
           ) : inQuestion ? (
             <>
-              <IonButton fill="outline" onClick={() => skip.mutate()} disabled={busy}>
+              <IonButton fill="outline" onClick={() => skip.mutate()} disabled={busy || noModules}>
                 <IonIcon slot="start" icon={playSkipForwardOutline} />
                 Skip question
               </IonButton>
@@ -153,13 +154,19 @@ export function ControlView({
               </IonButton>
             </>
           ) : (
-            <IonButton style={{ marginLeft: "auto" }} onClick={() => next.mutate()} disabled={busy}>
+            <IonButton style={{ marginLeft: "auto" }} onClick={() => next.mutate()} disabled={busy || noModules}>
               <IonIcon slot="start" icon={playForwardOutline} />
               Next question
             </IonButton>
           )}
           {busy ? <IonSpinner name="dots" /> : null}
         </div>
+
+        {noModules ? (
+          <p className="caption" style={{ marginTop: 10 }}>
+            Select at least one module to start.
+          </p>
+        ) : null}
       </div>
 
       {question ? (

@@ -1137,4 +1137,22 @@ generates only Definitions/Distinctions/Red flags). Live: all ten modules (2 sta
 appear in the picker with clean short titles ("Dev · Beg", "Dev · Adv", …), and advanced samples
 read well. Typecheck green.
 
+### Human — default to no modules, and block starting without one
+
+> let's load 0 modules by default and prevent the game from starting without any modules
+
+**AI implementation:** the module pool defaulted to *all* modules (and `drawQuestion` fell back
+to all modules if the pool was empty). Now:
+- `GameSession.modulePool` defaults to `[]`.
+- `drawQuestion` no longer falls back — with no pool and no explicit module it throws
+  `HttpError(409, "Select at least one module before starting.")`. `nextQuestion` was reordered to
+  draw *before* incrementing the question count, so a blocked start leaves the session untouched
+  (still lobby, Q0).
+- Educator control panel: Start / Next / Skip are disabled while zero modules are selected, with a
+  "Select at least one module to start." hint under the buttons.
+
+**Verified live:** a fresh session shows "Modules · 0" with Start disabled + the hint; `POST /next`
+with an empty pool returns 409 and leaves the state at lobby/Q0 (counter not bumped); selecting a
+module re-enables Start and starting then works. No console errors; typecheck + build green.
+
 _Subsequent sessions are appended below as work proceeds._

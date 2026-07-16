@@ -18,7 +18,6 @@ import {
   getModule,
   grade,
   type GroupStat,
-  MODULES,
   type Phase,
   type PublicGameState,
   type RecordedQuestion,
@@ -54,8 +53,9 @@ export class GameSession {
   private questionNumber = 0;
   private activeModuleId: string | null = null;
   private current: GeneratedQuestion | null = null;
-  /** Modules new questions are drawn from at random. Defaults to all. */
-  private modulePool: string[] = MODULES.map((m) => m.id);
+  /** Modules new questions are drawn from at random. Defaults to none — the educator must
+   *  select at least one before a game can start. */
+  private modulePool: string[] = [];
   /** Per-question auto-reveal length in seconds; 0 disables the timer (manual reveal). */
   private timerSeconds = 0;
   /** Epoch ms when the current question auto-reveals, or null when untimed. */
@@ -110,9 +110,10 @@ export class GameSession {
    *  clears any prior submissions. Does NOT touch the question number. */
   private drawQuestion(moduleId?: string): void {
     // An explicit module wins; otherwise draw one from the pool with the seeded RNG so the
-    // random choice is reproducible from the session seed.
-    const pool = this.modulePool.length ? this.modulePool : MODULES.map((m) => m.id);
-    const id = moduleId ?? this.rng.pick(pool);
+    // random choice is reproducible from the session seed. With no pool and no explicit
+    // module there is nothing to draw, so the game can't start.
+    const id = moduleId ?? (this.modulePool.length ? this.rng.pick(this.modulePool) : null);
+    if (!id) throw new HttpError(409, "Select at least one module before starting.");
     const module = getModule(id);
     if (!module) throw new HttpError(400, `Unknown module: ${id}`);
 
@@ -127,8 +128,9 @@ export class GameSession {
 
   /** Advance to the next question (starts the game, or moves on after a reveal). */
   nextQuestion(moduleId?: string): void {
-    this.questionNumber += 1;
+    // Draw first: if there are no modules to draw from, this throws before we bump the count.
     this.drawQuestion(moduleId);
+    this.questionNumber += 1;
   }
 
   /**
