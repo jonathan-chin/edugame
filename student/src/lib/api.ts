@@ -60,7 +60,3 @@ export function getProgress(token: string): Promise<StudentProgress> {
 export function leaveGame(token: string): Promise<{ ok: true }> {
   return req("/leave", { method: "POST", body: JSON.stringify({ token }) });
 }
-
-export function getJoinQr(): Promise<{ url: string; qrDataUrl: string }> {
-  return req("/join-qr");
-}

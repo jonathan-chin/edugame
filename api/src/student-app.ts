@@ -8,18 +8,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { checkName, type Submission } from "@edugame/shared";
 import cors from "cors";
-import express, { type Express, type Request } from "express";
-import QRCode from "qrcode";
+import express, { type Express } from "express";
 import type { GameService } from "./game-service.js";
 import { errorHandler } from "./http-helpers.js";
 import { HttpError } from "./session.js";
-
-/** Reconstruct the public origin from the (possibly proxied by ngrok) request. */
-function originOf(req: Request): string {
-  const proto = String(req.headers["x-forwarded-proto"] ?? req.protocol).split(",")[0];
-  const host = req.headers["x-forwarded-host"] ?? req.headers.host;
-  return `${proto}://${host}`;
-}
 
 export function createStudentApp(service: GameService, studentDist: string | null): Express {
   const app = express();
@@ -54,14 +46,6 @@ export function createStudentApp(service: GameService, studentDist: string | nul
     const token = String(req.body?.token ?? "");
     if (token) service.leave(token);
     res.json({ ok: true });
-  });
-
-  // A QR of this app's own public URL, so the projector's student view can display a
-  // join code for the class without the educator laptop (which the class can't see).
-  api.get("/join-qr", async (req, res) => {
-    const url = originOf(req);
-    const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 320 });
-    res.json({ url, qrDataUrl });
   });
 
   api.get("/progress", (req, res) => {
