@@ -1155,4 +1155,20 @@ to all modules if the pool was empty). Now:
 with an empty pool returns 409 and leaves the state at lobby/Q0 (counter not bumped); selecting a
 module re-enables Start and starting then works. No console errors; typecheck + build green.
 
+### Human — relicense from MIT to noncommercial
+
+The human asked whether MIT prevents commercial use; the AI clarified that MIT is permissive and
+explicitly allows commercial use (and selling), and laid out source-available alternatives. The
+human chose **PolyForm Noncommercial 1.0.0**.
+
+**AI:** replaced `LICENSE` with the canonical PolyForm Noncommercial 1.0.0 text (fetched from the
+project's repo) plus a `Required Notice:` copyright line; set `license` to
+`PolyForm-Noncommercial-1.0.0` in every workspace `package.json`; and dropped the "open-source"
+wording from the README/description (a noncommercial license is source-available, not OSI
+open-source), replacing the License section accordingly. The original "open source" phrasing in the
+Session 1 prompt was left untouched — that block is a verbatim record of what was said.
+
+**Note surfaced:** relicensing is not retroactive — the commits already pushed under MIT remain
+available under MIT; this governs future versions only. (Not legal advice.)
+
 _Subsequent sessions are appended below as work proceeds._

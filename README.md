@@ -1,7 +1,7 @@
 # EduGame
 
-A free, open-source, Kahoot-style classroom game with **programmatically generated
-questions**. Students join from their own devices, vote on a shared question shown on
+A Kahoot-style classroom game with **programmatically generated questions**, free for
+non-commercial use. Students join from their own devices, vote on a shared question shown on
 the projector, and the educator controls when to reveal the answer and advance. Every
 session's analytics are written live to an open **CSV** (plus a JSON manifest), and the
 educator sees real-time charts of performance by student, category, and skill.
@@ -123,4 +123,7 @@ yarn typecheck                          # typecheck all workspaces
 
 ## License
 
-MIT.
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE) — free to use, modify, and
+share for any **noncommercial** purpose, which explicitly includes schools and other educational
+institutions, nonprofits, research, and personal/hobby projects. Commercial use is not granted;
+contact the author for commercial licensing.

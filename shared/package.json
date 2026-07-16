@@ -2,7 +2,7 @@
   "name": "@edugame/shared",
   "version": "0.1.0",
   "description": "Shared contract: question-module interface, analytics types, seeded RNG, and content checks.",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

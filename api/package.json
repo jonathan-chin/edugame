@@ -2,7 +2,7 @@
   "name": "@edugame/api",
   "version": "0.1.0",
   "description": "Express API: serves the student app, generates questions, tracks analytics, and drives game flow over two ports.",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",

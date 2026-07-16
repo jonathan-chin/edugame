@@ -2,8 +2,8 @@
   "name": "edugame",
   "version": "0.1.0",
   "private": true,
-  "description": "A free, open-source, Kahoot-style classroom game with programmatically generated questions.",
-  "license": "MIT",
+  "description": "A Kahoot-style classroom game with programmatically generated questions. Free for non-commercial use.",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "packageManager": "yarn@4.17.0",
   "workspaces": [
     "shared",
