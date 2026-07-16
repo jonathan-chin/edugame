@@ -17,4 +17,4 @@ export * from "./modules/index.js";
 export * from "./modules/boxplot-common.js";
 
 /** Bumped alongside meaningful changes; written into each session manifest. */
-export const APP_VERSION = "0.4.0";
+export const APP_VERSION = "0.5.0";

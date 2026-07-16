@@ -13,9 +13,12 @@ implementation (AI) verbatim.
 ## What makes it different
 
 - **Infinite questions.** Questions come from pluggable *modules* that generate fresh
-  question/answer objects on the fly. Two ship today — **standard deviation** and
-  **box-and-whisker plots** — each producing two sub-skills (read one graphic vs. compare
-  four). Adding a module is a one-line registry change plus a renderer.
+  question/answer objects on the fly — never a fixed list. Ten ship today: two **statistics**
+  modules (standard deviation, box-and-whisker, with graphical/numerical sub-skills) and eight
+  **tech-interview vocabulary** modules — developer, QA, IT, and security, each split into
+  Beginner and Advanced — that assemble jargon questions from a bank of fact-atoms (definitions,
+  distinctions, red flags, analogies). Adding a module is a one-line registry change plus a
+  generator.
 - **No database.** Analytics stream to a flat CSV; questions are generated in memory.
 - **Reproducible.** A single RNG seed regenerates an entire session's questions. Pass it
   on the command line (or let a UUID be assigned) — it's recorded in the manifest.

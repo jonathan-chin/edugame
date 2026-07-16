@@ -1087,4 +1087,54 @@ and numerical options as `{kind:"svg", path:"<session>/…svg"}`, text inline, a
 `{format, correctOptionId}` on each. 30 sidecar `.svg` files written = 30 refs in the manifest;
 the manifest held **0** inline `<svg>` and stayed ~11 KB. Typecheck + builds green.
 
+### Human — a CS-jargon vocabulary module (procedural, generated on the fly)
+
+The human shared a technical-recruiter question bank and wanted a module to help students use
+CS jargon intentionally and confidently. The AI proposed turning it into modules and — when the
+human asked whether it could be non-deterministic / "generated on the fly, not pulled from
+pre-generated values" — clarified that the existing modules already generate on the fly
+*deterministically*, and that the same could be done for jargon via **procedural assembly** from
+fact-atoms (vs. an LLM). The human chose: **one module per domain**, sub-skills
+term→definition / discriminate / red-flag / analogy, and **procedural assembly**.
+
+**AI implementation (`shared/src/modules/vocab.ts`):** four selectable modules — Dev, QA, IT,
+Security vocabulary — sharing one generator. Each domain has a bank of *fact-atoms*
+(`term, definition, misconception?, analogy?, contrast?`) curated from the recruiter doc (strong
+answers → definitions, red flags → misconceptions, "difference between X and Y" → contrasts,
+examples → analogies). The generator assembles a fresh multiple-choice question off the seeded
+RNG: template × term × procedural distractors × shuffle. Nothing is a pre-written question, yet
+it's deterministic and **correct-by-construction** — every distractor is some *other* term's real
+fact, so there's exactly one right answer. Four sub-skills tagged on `skill`
+(Definitions / Distinctions / Red flags / Analogies). Text-only, so it renders in the existing
+2×2 grid and records inline. `APP_VERSION` → 0.5.0.
+
+**Verified:** generated 2,400 questions across the four modules — **0 invalid** (always 4 options,
+exactly one correct, no duplicate option text, `grade()` sane), all four sub-skills evenly
+represented; samples read well ("Which describes Stack, but not Queue?" → LIFO, trap FIFO; red-flag
+puts the misconception beside the real definition). Live: the four modules appear in the picker, a
+"Which describes Array, but not List?" question rendered on the student as a 2×2 text grid, reveal
+highlighted the correct option, and it recorded fully inline in the manifest. Typecheck green.
+
+### Human — split the vocabulary modules by difficulty (beginner / advanced)
+
+> can we split the modules by difficulty level? maybe just beginner and advanced?
+
+**AI (design + implementation):** the only fork was module count — with no per-module difficulty
+control in the UI, the level has to *be* a module. Human chose **domain × level = 8 modules**.
+Each fact-atom gained a `level`; a domain's Beginner/Advanced modules are built by one factory.
+
+Key design choice: a module's **subject** terms (what a question is *about*) come from its level,
+but **distractors and pair-partners** are drawn from the whole domain bank. So an Advanced module
+can still ask "which describes SSO, not MFA?" even though MFA is a Beginner term — MFA just never
+becomes a question subject there. This keeps every module rich (all four sub-skills stay feasible
+even when a confusable pair straddles levels) and makes Advanced modules skew naturally toward
+Distinctions and Red flags, since the specialized terms carry the pairs and nuance.
+
+**Verified:** 4,000 questions across the eight modules — **0 invalid** and **0 wrong-level** (each
+module only asks about its own level's terms, checked by parsing the subject out of every prompt);
+all four sub-skills present where feasible (advanced security has no analogy term, so it correctly
+generates only Definitions/Distinctions/Red flags). Live: all ten modules (2 stats + 8 vocab)
+appear in the picker with clean short titles ("Dev · Beg", "Dev · Adv", …), and advanced samples
+read well. Typecheck green.
+
 _Subsequent sessions are appended below as work proceeds._

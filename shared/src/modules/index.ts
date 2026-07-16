@@ -9,8 +9,9 @@
 import type { QuestionModule } from "../question.js";
 import { boxplotModule } from "./boxplot.js";
 import { stdevModule } from "./stdev.js";
+import { VOCAB_MODULES } from "./vocab.js";
 
-export const MODULES: readonly QuestionModule[] = [stdevModule, boxplotModule];
+export const MODULES: readonly QuestionModule[] = [stdevModule, boxplotModule, ...VOCAB_MODULES];
 
 const BY_ID = new Map<string, QuestionModule>(MODULES.map((m) => [m.id, m]));
 
@@ -35,4 +36,4 @@ export function moduleCatalog(): ModuleInfo[] {
   }));
 }
 
-export { stdevModule, boxplotModule };
+export { stdevModule, boxplotModule, VOCAB_MODULES };
