@@ -1,0 +1,131 @@
+:root {
+  --ion-background-color: #0f1220;
+  --ion-background-color-rgb: 15, 18, 32;
+  --ion-text-color: #eef1f8;
+  --ion-text-color-rgb: 238, 241, 248;
+  --ion-color-primary: #5b8cff;
+  --ion-color-primary-rgb: 91, 140, 255;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-success: #2fbf71;
+  --ion-color-danger: #ff5d6c;
+  --card: #1a1f36;
+  --muted: #9aa3c0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.center {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Single inline loading indicator (replaces the old app-wide overlay). */
+.loading {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Options stay 2-up (a 2x2 grid for the usual four) even on a phone, so the whole question
+   fits without vertical scrolling. */
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.option {
+  --background: var(--card);
+  border-radius: 16px;
+  min-height: 84px;
+  font-size: 1rem;
+  --border-width: 2px;
+  --border-style: solid;
+  --border-color: transparent;
+  transition: transform 0.08s ease;
+}
+.option:active {
+  transform: scale(0.98);
+}
+.option.selected {
+  --border-color: var(--ion-color-primary);
+}
+.option.correct {
+  --border-color: var(--ion-color-success);
+  --background: rgba(47, 191, 113, 0.16);
+}
+.option.incorrect {
+  --border-color: var(--ion-color-danger);
+  --background: rgba(255, 93, 108, 0.16);
+}
+
+.caption {
+  color: var(--muted);
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+
+.bar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  height: 10px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--ion-color-primary);
+}
+
+/* Per-question countdown */
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.timer-count {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ion-color-primary);
+  min-width: 3ch;
+}
+.timer-track {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  height: 10px;
+  overflow: hidden;
+}
+.timer-fill {
+  height: 100%;
+  background: var(--ion-color-primary);
+  transition: width 0.25s linear;
+}
+.timer.urgent .timer-count {
+  color: var(--ion-color-danger);
+}
+.timer.urgent .timer-fill {
+  background: var(--ion-color-danger);
+}
+
+.svg {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.svg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}

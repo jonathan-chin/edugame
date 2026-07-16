@@ -1,0 +1,29 @@
+{
+  "name": "edugame",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A free, open-source, Kahoot-style classroom game with programmatically generated questions.",
+  "license": "MIT",
+  "packageManager": "yarn@4.17.0",
+  "workspaces": [
+    "shared",
+    "api",
+    "student",
+    "educator"
+  ],
+  "scripts": {
+    "build:shared": "yarn workspace @edugame/shared build",
+    "build:student": "yarn workspace @edugame/student build",
+    "build:educator": "yarn workspace @edugame/educator build",
+    "build": "yarn build:shared && yarn build:student && yarn build:educator",
+    "start": "node scripts/orchestrate.mjs",
+    "dev": "node scripts/orchestrate.mjs",
+    "typecheck": "yarn workspaces foreach -A run typecheck"
+  },
+  "dependencies": {
+    "@ngrok/ngrok": "^1.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

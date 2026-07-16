@@ -1,0 +1,1062 @@
+# Collaboration Log
+
+This project is, in part, a working example of how AI can be incorporated into a
+software development workflow **effectively and ethically**. Part of being ethical
+is being transparent about who did what. This file is the honest record.
+
+## Division of labor
+
+The guiding principle is a deliberate split of responsibility:
+
+| Domain of the human (Jon) | Domain of the AI (Claude) |
+| --- | --- |
+| Design | Creating (implementation) |
+| Architecture | Debugging |
+| Vision | Documenting |
+| Purpose | Surfacing concerns |
+
+The human owns *what* is built and *why*. The AI owns *how* it is built, keeps it
+working, writes it down, and raises risks early so the human can make informed
+decisions. Every consequential decision below was made by the human; the AI
+proposed options, gave recommendations, and flagged trade-offs.
+
+This log is maintained verbatim as the project evolves. It is not a summary — it is
+the actual prompts and the actual back-and-forth, so a reader can see exactly where
+the human steered and where the AI executed.
+
+---
+
+## Session 1 — Kickoff and design decisions
+
+### Human — original prompt
+
+> ok, help me develop a new project. the overarching idea is a free, open source
+> educational tool / game that is in the style of Kahoot. the educator can run a
+> server locally, tunnel it to a public provider like ngrok, have students log in,
+> and vote on answers to a common shared question projected on the board. the
+> educator has the ability to control when to reveal the answer and when to move on
+> to the next question. the educator is also able to gather statistics about who is
+> answer, the kinds of questions that are scoring low or high, etc, that is saved in
+> an open source file type, like a csv.
+>
+> I imagine it divided into 3 major chunks:
+>
+> - the api server which serves the student client app, provides questions and
+>   answers, has endpoints for the educator client app, and tracks analytics. I'd
+>   prefer this to be written with express.
+> - the student client app that reads the current question from the api server and
+>   displays it, along with answers. students are asked to enter their name before
+>   beginning. they can change their answer at any time before the educator has
+>   chosen ot reveal the correct answer. students may also view their own progress;
+>   at the basic level, this is how many questions they have answered correctly and
+>   their overall percentage. at a deeper level, this will breakdown the same
+>   statistics across question categories and skill types.
+> - the educator client app that will allow the educator to control the overall flow
+>   of the game. namely, this is when to show the correct answer, which will lock out
+>   students from changing their answer or submitting answers if they haven't
+>   already. also, it will display running analytics of individual student
+>   performance, performance across question categories, etc.
+>
+> the entire project is designed to be run on 2 screens: the class projector which
+> will show an example student client app and the educator's laptop, which will be
+> running the educator client app and will not be viewable by the class.
+>
+> the key standout feature will be that the questions will be programmatically (and
+> therefore, theoretically, infinitely) generated. the mechanics of students voting
+> on answers and the educator controlling the flow of questions will stay as a core
+> feature. there will be plugable, extensible modules that generate questions and
+> answers. there will flexibility in things like how the question is displayed (text,
+> image, audio, or some combination) as well as for the answers (how many, whether
+> it's multiple choice or value input, if the multiple choice is text, image, etc).
+> these question modules will define their own way of creating question / answer
+> objects and will also provide metadata, like question category and which answer is
+> correct. the educator client app will also have control over switching to different
+> question modules on the fly while aggregating analysis across all question
+> categories during a particular session. here are a few question modules to start
+> off with:
+>
+> **graphical literacy with standard deviation**
+> question will display a bell curve with a particular standard deviation. curves can
+> also demonstrate skewedness or outliers. there will be 4 possible answers that are
+> always the same: near zero standard deviation, small standard deviation, large
+> standard deviation, very large standard deviation.
+>
+> **numerical literacy with standard deviation**
+> this is basically the inverse of the previous module. a question will prompt a
+> specific standard deviation category: near zero, small, large, very large. the
+> answer options will be various bell curves, which may also exhibit things like
+> skewedness or outliers.
+>
+> 2 more modules with box-and-whisker plots, similar to the previous two modules.
+> this time, instead of deviation types, they would be min, max, Q1, Q2, and Q3
+> values.
+>
+> analytics from each game session will automatically be saved as a flat csv file.
+> they will also be visualized on the educator client app, updating in real time.
+> additionally, there will be slide toggle that will temporarily anonymize students'
+> name so that the educator can show this analytics slide to the students. the toggle
+> will need to be clicked-and-dragged left or right to disable or enable
+> anonymization, so that a stray click will not accidentally expose student names.
+>
+> both client apps should be fairly minimal, preferring a clean, sleek appearance.
+> they should use Ionic components, Ionic Icons, and reCharts for interface
+> components and react hook form and tanstack query for api calls. there should be
+> built in profanity and content checks against all inputs, such as the user's name
+> and any answers where appropriate. these checks should happen both on client side
+> and the api server. there should be no database; answers for analytics should be
+> written directly to a csv file in real time and questions should be generated on
+> the fly.
+>
+> the project should be structured as a monorepo. there should be 3 directories at
+> the root, one for each major section. there should be a package.json file at the
+> monorepo root with a single script command that runs everything.
+>
+> the orchestration is tricky: the api server needs to be spun up first. the educator
+> client app can just make calls on localhost. however, in order for the student
+> client app to be accessed remotely, it needs to know the ngrok url of the api
+> server. this will change every time. additionally, the generated artifact files
+> will need to be accessible to students on their own laptops. ideally, these
+> artifacts are generated fresh every time on demand, baking in the ngrok url of the
+> api server at the time. maybe this is served to students on the same api express
+> server, at a specific rout?
+>
+> one last thing is that I want this project to also serve as a working example of
+> how AI usage can be effectively and ethically incorporated into software
+> development workflows. to achieve this, I want you to include this prompt and all
+> subsequent back and forth in a file available on the monorepo root. I want to
+> highlight the division of labor between you and me: design, architecture, vision,
+> and purpose are all within my domain while creating, debugging, documenting, and
+> surfacing concerns are within your domain. working together, we can make this a
+> successful reality.
+>
+> begin by asking me clarifying questions.
+
+### AI — clarifying questions (round 1) and Human decisions
+
+The AI noted the spec was already largely self-consistent and asked four questions
+that would materially change the build. The human decided:
+
+1. **Student join model** → **One session, name only.** The server runs one live
+   game at a time; a student opens the tunneled URL, types a name, and is in.
+2. **Educator endpoint protection** (the API is publicly reachable via ngrok) →
+   **Separate localhost-only port.** Two listeners: the student API on the tunneled
+   port, the educator/admin API bound to `127.0.0.1` and never tunneled. The public
+   internet physically cannot reach control endpoints.
+3. **Live updates transport** → **WebSockets.**
+4. **Language** → **TypeScript** throughout.
+
+### AI — clarifying questions (round 2) and Human decisions
+
+The AI presented a set of default assumptions (Yarn/Vite tooling, serving the
+student bundle from Express to eliminate URL-baking, the module contract shape, the
+CSV schema, content-check strategy, this collaboration log) and asked two more
+forks. The human decided:
+
+5. **Scoring** → **Binary correct/incorrect.** Score is percentage correct, broken
+   down by category and skill.
+6. **Shared code** → **Add a `shared/` package.** Four top-level dirs (`api`,
+   `student`, `educator`, `shared`). The module contract, analytics types, and
+   profanity list live once in `shared/`. This is a deliberate, human-approved
+   deviation from the original "exactly 3 directories" instruction.
+
+### AI — concerns raised (on the record)
+
+1. Free ngrok shows an interstitial browser-warning page and rate-limits; API calls
+   need an `ngrok-skip-browser-warning` header. **Human:** hasn't hit it before;
+   watch for it and solve if it appears.
+2. Name-only identity is spoofable/collision-prone. **Mitigation (approved):** issue
+   an opaque per-student token in `localStorage`; the name is display-only and
+   analytics key on the token; warn on duplicate names.
+3. CSV-as-only-store is not crash-durable (append-only, no transactions).
+   **Human:** understood, this was the intended approach.
+4. Content filtering is best-effort, not a safety guarantee. **Human:** fine.
+5. Question state must be session-pinned so all clients see the identical generated
+   instance and reconnects resume. **Human:** yes — and add an optional **RNG seed**
+   to the startup command (UUID if omitted), recorded for reproducibility.
+6. Getting the URL to students: show a **QR code** on the projector. **Human:** yes.
+
+### Human — follow-up adjustments
+
+> 1. do not use npm. use yarn.
+> 2. let's try your solution to the ngrok url problem
+>
+> (answers to concerns as recorded above; on #5 the human added the RNG-seed
+> requirement and asked whether a different file format is needed for session
+> metadata.)
+
+### AI — recommendation on session metadata format (accepted)
+
+A flat CSV is a poor home for session-level metadata like the seed. Decision: keep
+the **per-answer event log as CSV**, and write a companion **`*.meta.json` manifest
+per session** holding session-level facts (`seed`, start/end time, modules used, app
+version, student count). CSV rows carry a `session` id linking to the manifest. The
+seed is threaded through a PRNG so question generation is fully reproducible.
+
+### Agreed structure and run flow
+
+```
+edugame/
+├─ package.json         # Yarn workspaces + root "dev" (concurrently)
+├─ COLLABORATION.md      # this file
+├─ shared/              # module contract, analytics types, profanity list, seeded RNG
+├─ api/                 # Express: student API (tunneled) + educator API (localhost-only)
+│                        #  + WebSockets + serves student bundle + CSV/JSON writer + module registry
+├─ student/            # Ionic React: join, question, answer, personal progress
+└─ educator/           # Ionic React (localhost only): flow control, live analytics, drag-to-anonymize
+```
+
+**Run flow:** `yarn dev [seed]` → build & start API (student port + educator
+localhost port) → serve student bundle statically → start ngrok on the student port
+→ launch educator app against localhost. Students scan a QR code on the projector.
+
+### Human — follow-up on assumptions
+
+> let's go back to some assumptions first:
+> 1. do not use npm. use yarn.
+> 2. let's try your solution to the ngrok url problem
+>
+> (plus the point-by-point answers to the six concerns, recorded above; and: "yes, the
+> structure and flow look good to me. let's begin, unless you have more clarifying
+> questions.")
+
+### AI — implementation (this session)
+
+With the design locked, the AI implemented and **verified end-to-end** the following.
+Division of labor held: every decision above was the human's; the code, tests, and the
+verification below were the AI's.
+
+- **`shared/`** — content model, question-module contract + `grade()`, seeded RNG
+  (xmur3 + mulberry32), stats helpers (skew-normal density, five-number summaries),
+  analytics/CSV contract, `checkName`/profanity, WebSocket protocol, and the four
+  modules behind a registry.
+- **`api/`** — two Express servers over one in-memory `GameSession` (student on
+  `0.0.0.0`, educator on `127.0.0.1`), WebSocket hubs, a `GameService` that decides what
+  broadcasts to whom, an append-only CSV writer + JSON manifest, and QR generation.
+- **`student/`** — Ionic React: join (React Hook Form via `Controller` for Ionic inputs,
+  shared `checkName` client-side), live play with Recharts/SVG chart rendering, and a
+  personal progress view. Served same-origin by the API.
+- **`educator/`** — Ionic React: flow control with a live vote tally, Recharts analytics,
+  and the drag-to-confirm anonymization toggle (display-only masking).
+- **`scripts/orchestrate.mjs`** — `yarn start [seed] [--no-tunnel] [--skip-build]`:
+  build → boot API → open ngrok on the student port only → push URL → open educator app.
+
+**Verification performed:** the full server flow via curl (join, profanity rejection,
+generation of all four modules, answer, live count, reveal + lockout, grading,
+analytics, per-student progress, CSV + manifest, QR, localhost binding); typecheck of
+all workspaces and production builds of both clients; and a live browser run driving the
+real UIs — educator starts a question, student joins via the QR screen and answers,
+educator reveals and the student sees the graded result over the WebSocket, the progress
+and analytics views render, and the drag-to-anonymize toggle flips `Jordan` → `Student 1`.
+Seed reproducibility was confirmed (identical question IDs across runs of one seed).
+
+**Concerns surfaced during implementation (AI domain):**
+- Ionic inputs emit `onIonInput`, not native `onChange`; React Hook Form's `register`
+  silently fails on them, so `Controller` is used instead.
+- The classic `ngrok` npm package needs a postinstall binary download, which Yarn 4
+  disables by default; switched to `@ngrok/ngrok` (prebuilt native addon).
+- Client bundles exceed Vite's 500 kB warning (Ionic is large); acceptable for
+  classroom/LAN/tunnel use, noted for future code-splitting.
+- The bell-curve/box-plot React renderers are mirrored in both clients; the underlying
+  math lives once in `shared/` so it cannot drift.
+
+### Human — question-design fix (numerical SD module)
+
+The human noticed that the numerical/identify SD question ("Which distribution shows a
+small standard deviation?") was confusing: the correct answer was the `small` bucket, but
+a `near-zero` spike was also on screen, and both read as "small" in plain English.
+
+**AI (concern surfaced):** confirmed it was not a grading bug — the module used four
+fixed *named buckets* (`near-zero` 0.2–0.45, `small` 0.9–1.5, `large` 2.6–3.6,
+`very-large` 5.0–6.5) and asked for one specific bucket. The ambiguity was real: the two
+smallest buckets overlap semantically, and the identify module hid the labels, forcing an
+impossible "is this the small one or the very-small one?" comparison.
+
+**Human decision:** reframe the module as a *relative superlative* — "Which of the
+following distributions has the largest / smallest standard deviation?" No bucket-naming,
+so no ambiguity; the answer is simply the extreme shown.
+
+**AI implementation:** rewrote `stdev-numerical` to draw one clean curve per bucket (four
+well-separated spreads, single unambiguous extreme) and ask largest/smallest. Added a
+`{ clean }` option to `buildCurve` so comparison curves carry no skew/outlier noise.
+Verified over 500 generations that the marked-correct option is always the σ extreme, and
+confirmed the new question renders in the browser. This also makes the module consistent
+with the box-plot identify module, which already uses superlative comparisons.
+
+_Note left open: the graphical single-curve module still asks students to classify one
+curve into a named bucket (labels visible). That's a separate, more defensible exercise,
+but the near-zero/small distinction there remains subtle — revisit if desired._
+
+### Human — rendering architecture + variety
+
+> ok, let's modify this further. first, remove the outlier indicators… the red dots. then,
+> let's have a MUCH greater variety in the kinds of graphs. they're all kind of same-y.
+> in fact, is the question generator creating an entire dataset? … it might be better to
+> generate svgs and send those to the clients rather than the clients generating via
+> recharts … if we do this, we can remove recharts dependency on the client?
+
+**AI (clarification + concern):** corrected the premise — the generator was sending ~5
+numbers, not a dataset, so server-SVG isn't a wire-efficiency win (it's slightly larger);
+the real wins are flexibility (a module can emit any visual), dropping client chart code,
+and consistency. Confirmed Recharts could go.
+
+**Human decisions:**
+- Keep Recharts in the **educator** app for the analytics dashboards only; render
+  **questions** as server SVG and drop Recharts from the **student** app.
+- Vary the **distribution shapes**, but keep a single consistent render style.
+- Remove the red outlier dots.
+
+**AI implementation:**
+- `shared/distributions.ts` — families (normal, skew, triangular, uniform, bimodal,
+  heavy-tail) with a numeric-integration σ measurement; `makeDistribution` rescales each
+  shape so its σ is *exactly* the target, which keeps "largest/smallest σ" unambiguous.
+- `shared/svg.ts` — server-side SVG string renderers (filled density + baseline axis; box
+  plot with no outliers), colored via CSS variables so they still adopt the client theme.
+- `Content` gained a `kind: "svg"` variant (replacing the parametric `chart` variant);
+  clients inject it inline. Deleted the Recharts/`charts.tsx` renderers from both apps.
+- All four modules now emit SVG. The comparison module draws one shape per spread bucket,
+  so the four options are varied in appearance but well-separated in σ.
+- Removed Recharts from the student bundle (~390 KB smaller); kept it in the educator app
+  for analytics.
+
+**Verified:** all workspaces typecheck; both clients build; live run shows the new
+variety (bimodal, uniform/plateau, skewed, smooth bell) with no red dots, box plots
+rendering cleanly, and reveal grading the true σ-extreme correctly.
+
+**Concern noted:** for a bimodal/uniform shape, visual "width" and actual σ can diverge —
+a legitimate statistical-literacy nuance, but flagged in case the human later wants to
+restrict the comparison module to unimodal shapes.
+
+### Human — no angular shapes
+
+> I see that these can be very angular: rectangular, triangular, etc. don't do that. round
+> out the edges.
+
+**AI:** replaced the two angular families (`uniform` rectangle, `triangular`) with smooth
+analogues built from a *generalized normal* — a `peaked` family (exponent 1.4–1.8: a
+sharper but rounded-top peak) and a `plateau` family (exponent 3–4: a rounded flat top).
+For any exponent > 1 the top is rounded, never cusped, so no angular edges appear. Variety
+is preserved (bell, skewed, peaked, plateau). Verified: 400 draws yield only the four
+smooth families, and live questions show only rounded curves.
+
+### Human — bimodal is hard to read
+
+> I noticed there are some graphs generated with 2 peaks. it's hard to intuit what the
+> standard deviation is in that case.
+
+**AI:** agreed — a bimodal's σ is set by the gap between peaks, not the width of either
+hump, so it can't be read by eye. (The two-peak curves came from the comparison module;
+the single-curve classify module was already unimodal-only.) Restricted the σ modules to a
+new `SPREAD_LEGIBLE_FAMILIES` set — normal, skewed, triangular, uniform — dropping
+`bimodal` **and** `heavy-tail` (whose σ lives in its tails, same problem). The two shapes
+remain implemented for any future non-σ module. Verified: 400 draws produce only the four
+legible families, and live comparison questions now show only single-peaked shapes.
+
+---
+
+### Human — educator dashboard redesign
+
+> 1. combine the control page and the analytics page into one … two columns … control on
+>    the left and analytics on the right.
+> 2. put the projector tab as its own page as a separate route … a link … that opens it in
+>    a new tab.
+> 3. for the modules, … a checkbox select instead of a dropdown … an ion modal … select as
+>    many modules as they want. new questions will generate randomly from the pool.
+> 4. hide the reveal answer button if the game has not started … when started, align it to
+>    the right … a significant gap between next question and reveal answer.
+
+**AI implementation:**
+- Dropped the segment tabs; `App.tsx` now renders a two-column CSS-grid dashboard
+  (control left, analytics right; stacks under 900px). No router added — the projector is
+  a separate path (`/projector`) served by the same bundle via path-based rendering, and
+  the control column links to it with `target="_blank"`.
+- Module selection is now a **pool**: `IonModal` with a checkbox per module (row-click
+  toggles, staged draft committed on "Done"). New questions draw randomly from the pool —
+  the choice is made server-side with the **seeded RNG** (`session.setModulePool` /
+  `nextQuestion` picks via `rng.pick`), so reproducibility holds. New endpoints:
+  `GET/POST /api/pool`.
+- The Reveal button is hidden until the game starts (questionNumber > 0), then
+  right-aligned (`margin-left: auto`) away from Next question.
+
+**Verified live:** two-column layout at desktop width; module modal toggles and persists
+the pool (unchecked box-plot modules → pool `[stdev-graphical, stdev-numerical]`, and Start
+then drew an SD question); Reveal hidden in the lobby and right-aligned once started; the
+`/projector` route renders standalone with the join QR. No console errors.
+
+---
+
+### Human — dashboard polish + de-brand the code
+
+> 1. visually distinguish the two columns … place each in its own panel div (reuse/extend
+>    the class) with a different background color.
+> 2. "EduGame" is a working title … generalize any references to the name, such as the
+>    classname eg-panel.
+> 3. remove the two ion chips on the control panel; render the question number as plain text.
+> 4. make the module selection button half width, combined side-by-side with the row above it.
+> 5. what's the difference between by category and by skill?
+
+**AI:**
+- (5) Explained: category = task type (Graphical vs Numerical literacy); skill = concept
+  (Standard deviation vs Box-and-whisker). Two orthogonal groupings of the same answers.
+- (2) Renamed the CSS class/variable prefix `eg-`/`--eg-` → **generic unprefixed names**
+  (`panel`, `row`, `caption`, `--card`, `--muted`, …) across all client + shared files.
+  Course-corrected mid-task: an initial `APP_NAME` constant was over-engineering — reverted
+  it; "EduGame" stays hardcoded in the headers (trivial to change later).
+- (1) Each dashboard column is now `class="panel column"`, reusing `.panel` and overriding
+  the background with a recessed `--column-bg` (#12162b) + subtle border, so the inner
+  `.panel` cards (#1a1f36) visibly sit on top.
+- (3) Removed the phase/question `IonChip`s; the status is now plain text
+  ("Question · Q1 · 0/0 answered").
+- (4) The status and the (now half-width) Modules button share one flex row.
+
+**Verified:** typecheck + build all green; live dashboard shows distinct column vs. card
+backgrounds (inspected: #12162b vs #1a1f36), plain-text status, half-width Modules button,
+and Next/Reveal split; the student app and server-rendered SVGs still render correctly
+after the variable rename. No console errors.
+
+---
+
+### Human — "by category" → "by module"?
+
+> is "by category" the module the question came from? if so, rename "by category" to "by module".
+
+**AI:** clarified it was *not* — "by category" is the literacy category (Graphical vs
+Numerical, 2 values), whereas the module is finer (4 modules). Delivered the actual intent:
+added a concise `shortTitle` to each module ("Std dev — read/compare", "Box plot —
+read/identify"), labeled the already-computed `byModule` analytics with it server-side, and
+swapped the left analytics chart from **By category** to **By module**. Verified live with a
+scripted multi-module game: the chart shows the four modules by short title; "By skill"
+unchanged. (Category grouping still exists in the data if wanted back.)
+
+---
+
+### Human — clarified taxonomy; merge modules with sub-skills
+
+> module is the same as the module selection modal. skill is per-question metadata — a
+> module could have sub-skills … maybe combine the 2 standard-deviation modules into one
+> module with sub-skills (divided how it is originally), and similar for quartiles.
+
+This corrected an earlier misunderstanding. The agreed model: **module** = selectable
+topic; **skill** = per-question sub-skill within a module; the old separate `category`
+axis is dropped — it *becomes* the skill.
+
+**AI implementation:**
+- Collapsed the four modules to **two**: `stdev` ("Standard deviation") and `boxplot`
+  ("Box-and-whisker plots"). Each `generate()` random-picks (seeded) one of two sub-skill
+  variants, tagging the question's `skill` as **Graphical literacy** (read one graphic) or
+  **Numerical literacy** (compare/identify).
+- Removed `category` throughout: `QuestionInstance`, `QuestionModule` (no longer owns a
+  category/skill), `AnswerEventRow` + the CSV column, `AnalyticsSnapshot.byCategory`,
+  `StudentProgress` (→ `byModule`). Analytics now break down **by module** (topic) and
+  **by skill** (graphical vs numerical); student progress likewise.
+- Deleted the four old module files; the registry now lists the two merged modules.
+
+**Verified:** typecheck all green; generation shows each module yielding both sub-skills
+with no `category` leak; live dashboard shows 2 modules in the picker, "By module"
+(Standard deviation / Box-and-whisker) and "By skill" (Graphical / Numerical literacy)
+charts, and the new CSV header omits `category`. No console errors.
+
+---
+
+### Human — 401 during manual testing
+
+> with both clients running on localhost, I'm receiving a 401 unauthorized error … should
+> we store the token only in memory, not localStorage?
+
+**AI diagnosis:** the student browser had a token in `localStorage` from a *previous*
+server run; the API keeps sessions in memory only, so after a restart that token is unknown
+→ the first token-carrying request (answer or progress) returns 401 (the only 401s in the
+API). The reconnection gap flagged on day one.
+
+**AI recommendation (accepted direction):** rather than pure in-memory (which also drops the
+token on an accidental in-tab refresh, spawning a duplicate student and losing progress),
+use **`sessionStorage`** — survives an accidental reload, cleared on tab close, so each
+class starts fresh. Plus a self-heal: any 401 fires a `SESSION_INVALID_EVENT` that clears
+the stored token and returns the student to the join screen.
+
+Also added `--student-port` / `--educator-port` flags to the orchestrator (the manual test
+had a port already in use).
+
+**Verified live (on alt ports, without touching the running instance):** fresh load → join
+screen; join → play; valid token survives a reload (stays in game, no duplicate); a
+stale/bogus token on reload self-heals back to the join screen. No console errors.
+
+---
+
+### Human — skip button + reveal→next transform
+
+> upon starting, a question auto-generates. the Next Question button should become a Skip
+> Question button — generate a completely new question, discard submitted answers, don't
+> increment the count. Reveal Answer stays as is; once clicked it transforms into Next
+> Question.
+
+**AI implementation:**
+- Split `session.nextQuestion` into `drawQuestion` (pick module, open answering, clear
+  submissions) + `nextQuestion` (increment then draw) + new **`skipQuestion`** (draw
+  without incrementing; only valid mid-question). Discarding submissions is free — answers
+  are only graded/written to CSV on reveal, so an un-revealed question has nothing
+  persisted. New endpoint `POST /api/skip`.
+- Educator control buttons now branch on phase: **lobby** → "Start game"; **question** →
+  "Skip question" (left) + "Reveal answer" (right); **revealed** → "Next question" (the
+  reveal button, transformed in place).
+
+**Verified live (alt ports):** skip keeps the question number, swaps in a new question, and
+resets answered→0; next increments (Q1→Q2→Q3); the button set transitions correctly through
+lobby → question → revealed → question. No console errors. (Also confirmed `--student-port`/
+`--educator-port` flags work.)
+
+---
+
+### Human — "Start Game does nothing"
+
+> I press Start Game and nothing happens … restarting the server didn't help.
+
+**AI diagnosis:** could not reproduce on a clean build — `POST /api/next` returns 200 and
+the question renders. Root cause is environmental: the educator UI reflected state **only
+through the WebSocket**, so if the socket is stale/disconnected (which a server restart
+causes) the server advances but the screen never updates. Compounded by a possibly cached
+old bundle.
+
+**AI fix (robustness):** the control actions now apply the server's HTTP response directly.
+`/next`, `/skip`, and `/reveal` all return the new `PublicGameState`; `useEducatorSocket`
+exposes `applyState`, and the next/skip/reveal mutations call it `onSuccess`. So Start /
+Skip / Next / Reveal update the view instantly and no longer depend on a live socket. (The
+reveal's correct-answer highlight still comes over the socket, which reconnects on its own.)
+
+**Verified:** clean build starts a game (200 + Q1 rendered); `/reveal` now returns state;
+the full loop (start → skip → reveal → next) works in the UI. Guidance to the human: rebuild
+and hard-refresh to load the new bundle.
+
+---
+
+### Human — indicate the connecting state in the control panel
+
+> the questions panel starts immediately but analytics shows "Connecting…" and the title
+> "reconnecting…". I'm fine if the questions panel waits for connection, but show an
+> indication — disable the start button and show a loading indicator.
+
+**AI implementation:**
+- The control panel now gates on the first game state arriving: while `state === null` the
+  Start button is disabled and a spinner + "Connecting…" is shown (matching the analytics
+  panel). Once connected it renders normally.
+- Fixed the header wording: `useEducatorSocket` now tracks `everConnected`, so the first
+  connect reads "· connecting…" and only a later drop reads "· reconnecting…".
+- Note: this gates the *initial* load only (state stays non-null after first load), so the
+  earlier fix — actions still work if the socket drops mid-game — is preserved.
+
+**Verified live:** with a temporary connect delay, captured the connecting state (header
+"connecting…", Start disabled, spinner + "Connecting…"); after reverting, the panel connects
+fast and Start is enabled. No console errors.
+
+---
+
+### Human — consolidate into one app-wide loading overlay
+
+> there are so many "connecting…" labels and it feels disjointed. remove them and apply an
+> application-wide ion-loading component.
+
+**AI implementation:** replaced every per-panel "Connecting…" label (header note, control
+status/spinner, analytics placeholder) with a single `IonLoading` overlay in the educator
+Dashboard, shown while the initial state/analytics load (`!state || !analytics`). Panels
+render only once loaded, so ControlView/AnalyticsView never see null. Reverted the
+now-unused `everConnected` wording plumbing. The overlay is initial-load only (state stays
+set afterward), so a mid-game reconnect never re-triggers it and HTTP-driven actions still
+work.
+
+**Verified live:** with a temporary connect delay, captured the single centered "Connecting…"
+overlay (clean header, panels hidden); after revert, the dashboard loads with no stray labels
+and Start still begins a game. No console errors.
+
+---
+
+### Human — apply the same overlay to the student app
+
+> yes, let's keep it consistent
+
+**AI implementation:** mirrored the educator treatment in the student app — removed the
+header "· reconnecting…" note and the vestigial "Connecting" text in the lobby waiting
+screen, and added a single `IonLoading` overlay shown while the first game state loads
+(post-join). The overlay is initial-load only, so the lobby's "Waiting for the teacher…"
+game-state message is unaffected.
+
+**Verified live:** with a temporary socket delay, the student shows the same centered
+"Connecting…" overlay (header/tabs behind it, no stray labels); after revert, it loads to
+"Waiting for the teacher… N joined". A codebase audit confirms only the two intended
+`IonLoading` messages remain. No console errors.
+
+---
+
+---
+
+## Session 2 — Per-question auto-reveal timer
+
+_(This session resumed the project after the original chat history was lost; the AI first
+re-read the whole repository to recover context, then the human chose the next feature.)_
+
+### Human — feature request
+
+> let's add a timer. before starting the game, the educator can specify a timer. for each
+> question, once the timer expires, no new answers will be accepted and the correct answer
+> will be revealed.
+
+### AI — design decision (surfaced, human-approved direction)
+
+The load-bearing question was *who enforces the timer*. A client-side countdown that reveals
+when it hits zero would be unenforceable — a student could freeze their clock and keep
+answering, and the projector/educator/phones would disagree on when time is up. So the timer
+is **server-authoritative**, consistent with the rest of the app (the answer key never leaves
+the server until reveal; control endpoints are localhost-only):
+
+- The session owns a `timerSeconds` setting and, per drawn question, a wall-clock `deadline`.
+- The `GameService` schedules a `setTimeout` that, when it fires, calls the **same** `reveal()`
+  path a manual reveal uses — grade submissions, append CSV rows, broadcast the reveal. So an
+  auto-reveal and a hand-reveal are byte-for-byte the same operation; answers lock identically.
+- Manual reveal / skip / next / end all cancel the pending timer; skip/next re-arm it.
+- `PublicGameState` gained `timerSeconds`, `questionEndsAt` (epoch ms), and `serverNow` (so
+  clients correct for clock skew rather than trusting their own clock). The deadline is
+  wall-clock only and never touches the RNG, so seed reproducibility is unaffected.
+
+Clients are purely cosmetic: a shared `useCountdown` hook (mirrored in both apps, like the
+existing `ContentView`) ticks a display off `questionEndsAt`, offset by the measured skew.
+The educator sets the value in the control panel before/between questions (an `IonInput`,
+0 = off); during a live question that row becomes the countdown. The student and projector
+show a countdown bar above the question that turns red in the final 5 s.
+
+New endpoints: `GET/POST /api/timer` (educator server only).
+
+### AI — verification performed
+
+- **Typecheck** of all workspaces green; both client bundles rebuilt.
+- **Server flow via curl (authoritative):** set a 3 s timer, joined a student, started a
+  question (state carried `timerSeconds: 3` and a `questionEndsAt` ≈ 3000 ms ahead of
+  `serverNow`), submitted an answer while `answeredCount: 1`, then — with no further action —
+  the server flipped to `phase: revealed, locked: true` on its own and **appended the graded
+  row to the CSV**, proving auto-reveal grades exactly like a manual reveal.
+- **Live browser run:** educator control shows the setter ("Auto-reveal timer 3 seconds"),
+  and once a question starts, a ticking "27s → … until auto-reveal" countdown with the
+  Skip / Reveal buttons; the student play view shows the countdown bar ("45s" + progress),
+  and when the server's timer fired the student screen auto-locked and highlighted the correct
+  option in green with "Answer revealed." — no educator click involved. No console or server
+  errors on either app.
+
+### AI — concern surfaced (AI domain), left for the human to decide
+
+A **pre-existing** "Connecting…" `IonLoading` overlay sometimes fails to dismiss and lingers
+on top of the (already-rendered) dashboard in the embedded webview. It is unrelated to the
+timer — it reproduces in both apps and predates this change — and appears to be Ionic's
+declarative `isOpen` dismiss behavior. Flagged for a separate fix; not touched here to keep
+this change scoped to the timer.
+
+---
+
+## Session 3 — Educator UI polish
+
+### Human — answer options as a 2×2 grid
+
+> for the educator client, can we rearrange the answer options in a 2x2 grid?
+
+**AI implementation:** the control column's option list was a vertical stack, which wasted the
+column's width for the usual four options. Added an `.answer-grid` class
+(`grid-template-columns: repeat(2, minmax(0, 1fr))`, single column below 480px) and swapped
+the flex-column container for it; dropped the old per-option `maxWidth: 240` so each cell's
+content fills its column. The `minmax(0, 1fr)` is load-bearing — it stops the wide server-SVG
+option graphics from blowing out the tracks. Only the educator client changed (the student
+options were already a responsive 2-up grid).
+
+**Verified live:** text options (Near-zero / Small / Large / Very large) tile 2×2 each with its
+vote bar, and the SVG-option variant (four density curves) also tiles cleanly with no overflow.
+No console/server errors.
+
+### Human — the drag-to-anonymize toggle
+
+> the drag toggle for educators to anonymize the data is not the best experience.
+> 1. can we pull the labels out of the slide track?
+> 2. can we left align that cell? being right aligned causes to some bouncing
+
+**AI (diagnosis + implementation):** both complaints had one root cause. The "Names"/"Hidden"
+labels were absolutely positioned *inside* the track, and the whole toggle was pinned to the
+right of a `space-between` row — so when its descriptive caption changed length (on toggle),
+the right-anchored cell resized and the track jumped sideways ("bouncing").
+
+- Pulled the labels out to **flank** the track (`Names [====] Hidden`), emphasizing whichever
+  side is active; the emphasis follows the knob *live* during a drag.
+- Moved the toggle onto its **own left-aligned line** below the stat, so the track's left edge
+  is fixed by the panel padding and the changing caption now sits *below* it — it can no longer
+  push the track horizontally. The drag-past-midpoint commit logic itself was left untouched.
+
+**Verified live:** dragging the knob right flips to anonymized — track turns amber, "Hidden"
+emphasizes, and the roster switches to "Student 1 / Student 2"; the track's left edge is
+identical in both states (no bounce). No console errors.
+
+### Human — split the summary panel into two columns
+
+> let's split that panel into 2 columns: percentage and summary on the left, anonymity toggle
+> on the right. for the left column, let's put the percentage as a large, center aligned
+> number on its own with the other general statistics below it.
+
+**AI implementation:** the top analytics panel became a two-column flex row (`.summary`): a
+left `.summary-figure` with the accuracy as a large (3rem), centered number on its own line and
+the "N answers · M students" line centered beneath it, and a right `.summary-toggle` holding
+the anonymize control.
+
+### Human — why aren't the columns symmetric? + responsive stacking
+
+> wait, why don't they have the same flex value? they both should be 1 1 0%
+>
+> [then] ok let's make it responsive then. if the row is below a certain threshold where a true
+> 50/50 split is not possible, render them as stacked columns
+
+**AI (explanation + final design):** the first cut used `flex: 0 0 330px` on the toggle and a
+fluid figure, because the toggle wraps a **fixed-width 220px drag track** (plus the Names/Hidden
+labels) and so has a hard ~330px floor it can't shrink past. The human rightly pushed for a
+symmetric declaration. The resolution: give **both** columns `flex: 1 1 330px`. Because the basis
+is explicit (not `auto`), the width comes from the flex split rather than the caption's
+max-content — so the bounce stays fixed — and the shared basis makes the layout self-responsive:
+two 330px columns only fit side by side when the row is at least `2×330 + gap`, where they grow
+equally to a **true 50/50**; below that, `flex-wrap` drops them to **stacked, full-width
+columns**. The wrap threshold is exactly "the width at which an even split stops being possible,"
+which is what the human asked for — no media/container query needed.
+
+**Verified live + measured:** at a 1600px viewport the columns sit side by side at 50/50 (≈345px
+each, filling the panel); at 1280px the summary content is ~547px (< the ~676px an even split
+needs) so they stack full-width; and the track's left edge is stable across Names ↔ Hidden
+(0.22px subpixel delta — no bounce). No console errors.
+
+### Human — rearrange the control (questions) panel
+
+> in a similar vein, let's refactor the questions panel. move the modules select dropdown to
+> the same row as the open projector view link. split these 50/50. then, move the auto timer
+> reveal control and matching seconds left to where the old modules select dropdown was
+
+**AI implementation:** reshuffled the control column's header without touching any logic:
+
+- The "Open projector view" link and the "Modules · N" button now share one 50/50 flex row
+  (each `flex: 1`) above the panel.
+- The panel's first row keeps the status text on the left and now hosts the **timer control**
+  on the right, in the cell the Modules button vacated. It stays conditional: the compact
+  setter (`⏱ Auto-reveal [n] sec/off`) before/between questions, and the live countdown
+  (`⏱ Ns until auto-reveal`) during one — both right-aligned so the row reads as a status bar.
+- The old standalone timer row was removed. The setter's label was shortened ("Auto-reveal"
+  + "sec"/"off") to fit the half-width cell.
+
+**Verified live + measured:** the 50/50 header renders (projector link | Modules); the panel
+row shows status left and the timer setter/countdown right; starting a timed question swaps the
+setter for the "42s until auto-reveal" countdown in place; and driving the relocated input
+(type 20 → blur) committed to the server (`/api/timer` → `{seconds:20}`) and reflected in the
+UI — so the move preserved the full commit path. No console errors.
+
+---
+
+## Session 4 — Startup: automatic port selection
+
+### Human — don't crash on a busy port
+
+> let's edit the startup scripts. it seems that if the exact ports for each client is already
+> taken, the script crashes. can it intelligently select the next open port?
+
+**AI (diagnosis + implementation):** the API called `server.listen(port)` with no `error`
+handler, so a taken port raised an unhandled `EADDRINUSE` and killed the process; the
+orchestrator then just timed out waiting for health. Fixed at the layer that already owns the
+port numbers — the orchestrator:
+
+- Added `findOpenPort(preferred, host, exclude)` (probes by briefly binding with `net`). Before
+  spawning the API it resolves the student port from 4000 and the educator port from 4100,
+  each probed on the host it actually binds (`0.0.0.0` / `127.0.0.1`) and kept distinct, then
+  threads the resolved ports through the spawn env, health checks, ngrok `addr`, the
+  `/api/link` post, and the printed URLs. It logs any shift (`port 4000 in use → using 4001`).
+- Added a fail-fast: if the API child exits during startup, the orchestrator reports it and
+  shuts down instead of waiting out the 20 s health timeout.
+- Defensive net in `api/src/main.ts`: both servers now have an `error` handler that prints a
+  clear `EADDRINUSE` message and exits 1 — covers the rare probe→bind race and running the API
+  directly on a busy port.
+
+**Verified live:** with an instance already holding 4000/4100, a second `yarn start` logged
+"student port 4000 in use → using 4001" / "educator port 4100 in use → using 4101", came up
+healthy on 4001/4101, and printed the shifted URLs — no crash (`lsof` confirmed all four ports
+listening). With the ports free again, a fresh launch bound 4000/4100 normally with no shift
+message. Typecheck green.
+
+### Human — timer field should commit on blur, not on Enter
+
+> the delay timer has poor ui. when entering a number, I have to press enter to have it
+> changed. instead, make it change the setting on blur
+
+**AI (diagnosis + fix):** two problems. (1) The commit ran in `onIonBlur` reading the
+`timerText` state, and the reseed effect was keyed on `[state.timerSeconds, timerFocused]` —
+so the instant blur flipped `timerFocused` to false, the effect re-ran and reset the field to
+the *pre-commit* server value before the POST had echoed back, i.e. a flicker that made blur
+look like it did nothing. (2) It leaned on a manual `onKeyDown` Enter→blur() to feel like it
+committed. Rewritten to the idiomatic Ionic pattern: `onIonInput` updates the live text, and
+**`onIonChange`** commits — in Ionic v8 that event fires precisely when the value is committed
+(on blur and on Enter). The handler now takes `e.detail.value` directly (no stale-closure
+risk), and the reseed effect is keyed on `[state.timerSeconds]` only, so a just-committed value
+is never stomped. `onIonChange` also only fires on an actual change, so a focus/blur with no
+edit no longer sends a redundant request.
+
+**Verified live (real interaction):** with the field at 7, typed a new value and clicked away
+— **no Enter** — and `/api/timer` committed to the typed value, the field held it with no
+flicker. (Confirming this surfaced the pre-existing `IonLoading` "Connecting…" overlay again:
+it sits on top and intercepts focus/clicks, which is what blocked driving the input until it
+was dismissed — still worth fixing separately.) Typecheck green.
+
+### Human — the stuck "Connecting…" loading overlay
+
+> [propose ways you would fix it → chose imperative → then:] ok, it seems that an app wide
+> loading indicator is still problematic. let's pivot and use inline indicators. just try to
+> minimize how many of them there are
+
+**AI (diagnosis):** probing the live DOM showed the `<IonLoading isOpen={loading}>` overlay
+tore down unreliably — after `loading` cleared, the loading element hid but a stray
+`ion-backdrop` (or the whole box) was left behind at z-index 40001 with `pointer-events: auto`,
+swallowing clicks and focus over the rendered dashboard. Classic Ionic `isOpen`-overlay
+mount/dismiss race, worsened by a near-instant localhost connect (loading flips true→false
+within a render).
+
+**First attempt (human's pick): imperative `useIonLoading`.** Presenting imperatively and
+awaiting `present()` before dismissing fixed the clean-load case (overlay dismissed and stayed
+gone). But a real *pointer* click still re-surfaced a stuck overlay — `useIonLoading` keeps a
+reusable overlay element in the DOM, and a click re-showed it (`document.activeElement` became
+`ION-LOADING`, `visibleOverlays: 1`, while the dashboard was still rendered). Programmatic
+focus didn't trigger it; a synthesized mouse click did. So the overlay approach was flaky at
+its root, not in one particular control mechanism.
+
+**Human decision:** stop using an app-wide overlay entirely; use inline indicators, kept to a
+minimum.
+
+**AI implementation:** removed `IonLoading`/`useIonLoading` from both apps. Each now renders a
+**single** inline indicator in its existing loading branch — a centered `IonSpinner` +
+"Connecting…" (`.loading`) shown only while the first socket state loads, replaced by content
+once connected. One per app (educator dashboard, student post-join), not the pre-overlay
+sprawl of per-panel labels. No overlay element means nothing to get stuck or intercept input.
+
+**Verified live:** after load both apps have **zero** `ion-loading`/`ion-backdrop` elements;
+content renders; and the exact interaction that used to be swallowed — a real mouse click on
+the timer field — now lands (`activeElement: INPUT`, `inTimerInput: true`). Typecheck + both
+builds green.
+
+### Human — refreshing after a reveal loses the correct answer
+
+> if the student refreshes their client and the question's answer has already been revealed,
+> it no longer displays the correct answer on their client side
+
+**AI (diagnosis):** the reveal (which option is correct) is a **one-time** WebSocket push sent
+at the moment the educator reveals. A client that connects or reconnects afterward only gets
+its "hello" burst — `state` (phase `revealed`, locked) but no `reveal` — so on refresh it
+showed a locked question with nothing marked. The answer key is server-side and never replayed.
+
+**AI fix:** added `GameSession.currentReveal()` (returns the current question's `RevealInfo`
+when `phase === "revealed"`, else null) and included it in the on-connect hello for both
+`helloStudent()` and `helloEducator()`. So a fresh socket now receives `[state, reveal]`, and
+since the client applies `state` first (reveal stays null) then the `reveal` message, the
+highlight lands correctly. The educator dashboard gets the same benefit on refresh.
+
+**Verified live:** with a question revealed, a brand-new WebSocket to `/ws` received
+`["state","reveal"]` with the right `correctOptionId`; and reloading the student tab rendered
+the revealed question with the correct option highlighted green and "Answer revealed." — where
+before it showed a locked question with no answer. No console errors. (Note: the student's own
+prior selection isn't restored — client-only state — so a refreshed student sees the correct
+answer marked but not their earlier pick; flagged in case that's wanted later.)
+
+### Human — spinner off-center on the "Waiting for the teacher…" screen
+
+> on the student client when it is Waiting for the teacher…, the loading indicator (3 dots)
+> is not centered
+
+**AI (diagnosis + fix):** the waiting screen's `.center` container is a flex *column* with
+`justify-content: center` (vertical) but the default `align-items: stretch`, and only had
+`text-align: center`. Text-align centers the text inside the `IonText` block, but the
+fixed-size `IonSpinner` is a flex item positioned on the cross axis by `align-items` — so it sat
+at the left edge. Added `align-items: center` to that one container (inline, so the separate
+`.center` used by the live-question view is untouched).
+
+**Verified live:** on the waiting screen the spinner's center X now equals the viewport center X
+(offset 0 px) — dead-centered above the text. No console errors.
+
+### Human — prevent duplicate student names
+
+The AI proposed four approaches (auto-disambiguate, reject/enforce-unique, educator-in-the-loop,
+always-on identity tag) and recommended a blend. The human chose, for now, **option B — reject
+duplicates** — with a plan to revisit after feedback.
+
+> for now, let's implement B. I'll get some feedback and refactor this later on as needed
+
+**AI implementation:** enforce case-insensitive name uniqueness at join.
+- `GameSession.join()` now checks the entered name (already trimmed/space-collapsed by
+  `checkName`) against every joined student case-insensitively and, on a collision, throws
+  `HttpError(409, "That name is already taken", "name-taken")`. The check + insert live in the
+  one method, so it's atomic. Dropped the old `duplicateName` return (a collision is now an
+  error, not a soft flag).
+- `HttpError` gained an optional `reason`, and `errorHandler` now forwards it, so the client can
+  map a specific message instead of a generic failure.
+- `JoinView` shows "That name's already taken — please choose a different one." on the
+  `name-taken` reason and keeps the student on the join screen to pick another; removed the old
+  "someone already joined with that name" soft toast.
+
+**Verified live:** via the API, `Alex` joins (200) while `alex` and `  ALEX  ` are rejected
+(409 `name-taken`) and `Bob` succeeds — so matching is case-insensitive and whitespace-normalized;
+in the UI, submitting a taken name shows the toast and stays on the join screen. Typecheck + build
+green, no console errors.
+
+_Note left open (per the human's "refactor later"): names are unique among everyone who has
+joined this session, and there is no student-removal yet, so a name stays reserved even after
+someone leaves; determined collisions are still trivially bypassable ("Alexx"). Revisit with the
+disambiguation/educator-control ideas when feedback comes in._
+
+### Human — logout buttons (student + educator)
+
+> now for both clients, let's include a logout button on the top right. for students, it will
+> release their token and username. for educators, it will end the current game (writing
+> anything needed to the filesystem), logout all students, and reset
+
+**AI implementation.**
+
+*Student logout* — a header button (top-right) that clears the sessionStorage token/name,
+returns to the join screen, and fire-and-forget POSTs `/api/leave` so the server drops them:
+`GameSession.removeStudent()` deletes the roster entry + any pending answer (freeing the name
+for reuse and invalidating the token); already-graded events stay (the CSV is the durable
+record). The educator's roster/analytics refresh over the socket.
+
+*Educator logout* — a header button that opens a confirm dialog (`IonAlert`; user-triggered, so
+not exposed to the `IonLoading` overlay flakiness), then calls `/api/reset`:
+`GameService.reset()` finalizes the outgoing game (clears the timer, marks `endedAt`, writes its
+manifest — CSV was already written incrementally), broadcasts a new `{ type: "reset" }` WS
+message to the student hub, then swaps in a **fresh session + writer** and broadcasts the new
+lobby state + empty analytics. To support the swap, `GameService` now holds a mutable
+`session`/`writer` built by a `newSession()` factory (injected from `main.ts`): the first game
+uses the configured id/seed; each reset mints a new id (→ new CSV/manifest) and seed, so every
+game is its own record. Students receive `reset` and reuse the existing `SESSION_INVALID_EVENT`
+path to return to the join screen. New WS type `{ type: "reset" }`; new endpoints `/api/leave`
+(student) and `/api/reset` (educator).
+
+**Verified live:**
+- Student `/leave`: `Alex` joins → second `Alex` 409 → Alex leaves → `Alex` joins again 200
+  (name freed). UI: clicking the header logout returns to the join screen and clears storage.
+- Educator `/reset`: from a revealed Q1 with 2 students, reset produced a **new** session id
+  (lobby, 0 questions, 0 students, timer 0); the old `*.meta.json` gained an `endedAt` and kept
+  its CSV rows, a fresh CSV/manifest appeared for the new session. UI: the top-right button
+  opens the confirm dialog and "End & reset" returns the dashboard to a clean lobby.
+- A connected student socket received `["state","reset","state"]` on reset (`gotReset: true`),
+  i.e. it's kicked back to join. No console errors; typecheck + builds green.
+
+### Human — student count should reflect real presence (leave / tab-close / disconnect)
+
+> the educator client has a total number of students in the lobby. is that updated regularly?
+> it should reflect if a student logs out but also if they close the tab or they lose network
+> connection. it's ok if there's a reasonable lag in updating, like 5 seconds
+
+**AI (approach):** the roster only shrank on explicit logout/reset. The WS hub was one-way
+(server → client), so students were anonymous to it and a closed tab / dropped network left a
+stale roster entry. Rather than build socket-liveness tracking (protocol ping/pong + per-socket
+token association + grace timers), used a simpler, uniform **heartbeat + sweep** that covers all
+three cases the same way:
+
+- **Client:** `useGameSocket(token)` sends a `{ type: "heartbeat", token }` over its existing
+  socket on connect and every 2 s (and immediately when a token first appears after joining).
+- **Server:** the student hub forwards each heartbeat to `GameService.markSeen(token)`
+  (`lastSeen[token] = now`; join also seeds it). A 2 s sweep drops any roster student whose last
+  heartbeat is older than `PRESENCE_TIMEOUT_MS = 5 s`, then broadcasts fresh state/analytics. So
+  a student who logs out, closes the tab, or loses the network stops heartbeating and is removed
+  within ~5–7 s — the "reasonable lag" the human allowed. New `ClientMessage` variant
+  `heartbeat`; `Hub` gained an `onHeartbeat` callback (student hub only).
+
+**Verified live:** a simulated client that joined and heartbeated held `studentCount = 1`
+through t=0→4 s, then (heartbeats stopped) dropped to 0 by ~t=10 s (≈6 s after the last beat);
+the **real** app kept a student at `studentCount = 1` across 9 s (past the 5 s timeout), so live
+students are never wrongly evicted; and navigating a joined tab away cleared the roster (educator
+shows "0 students / No one has joined yet"). No server or console errors; typecheck + builds green.
+
+### Human — roster count and analytics roster disagree on join
+
+> a student is waiting … the teacher dashboard shows Lobby · 0/1 answered … but the analytics
+> panel shows "No one has joined yet."
+
+**AI (diagnosis + fix):** the two panels read different data. The control panel's "0/1" comes
+from the broadcast `state` (`studentCount`), which `join()` did update; the analytics
+"Students" list comes from the `analytics` snapshot, and `join()` broadcast `state` but **not**
+`analytics`. So an educator already connected when a student joined kept its pre-join (empty)
+analytics snapshot. The roster list is built from the live student map, so the fix was simply to
+`broadcastAnalytics()` on join too (leave/reveal/sweep already did).
+
+**Verified live:** with the educator connected first, a student joining flipped the analytics
+panel from "No one has joined yet" to "0 answers · 1 students" with the name in the roster,
+matching the control panel's "0/1". No console errors.
+
+### Human — sort the analytics roster alphabetically
+
+> the students analytics panel … should be alphabetical by student name
+
+**AI:** the `analytics()` roster was sorted by accuracy (descending, a leaderboard). Changed the
+sort to `a.name.localeCompare(b.name, undefined, { sensitivity: "base" })` — case-insensitive
+alphabetical. (Server-side, so it's the single source of truth for every consumer of the list.)
+
+**Verified live:** students joined as Zoe, alice, Mona, Bob, charlie came back as
+`[alice, Bob, charlie, Mona, Zoe]`; in the UI, joining Diego/Ana/Yusuf/Mei rendered as
+Ana → Diego → Mei → Yusuf. No console errors.
+
+_Note: when the anonymize toggle is on, names become "Student N" (N is stable, keyed on token),
+but the rows stay in real-name alphabetical order — so the numbers can read non-sequentially.
+Left as-is since the request was about the named view; can sort the anonymized view by number
+instead if preferred._
+
+### Human — join input: random writer placeholder + validate on blur
+
+> pick the placeholder name randomly from a list of popular writers and poets.
+> it validates as the user types. instead, swap it to validate on blur
+
+**AI implementation (JoinView):**
+- Added a list of ~18 writers/poets; the name field's placeholder is `e.g. <random one>`, picked
+  once per visit via `useState(randomPlaceholder)` (a fresh name on each mount / re-join).
+- Switched React Hook Form from `mode: "onChange"` to `mode: "onBlur"`, so the inline error only
+  appears when the field loses focus (the `Controller` already forwards `onIonBlur`→`field.onBlur`).
+- Decoupled the submit button from `formState.isValid` (now `disabled={mutation.isPending}` only).
+  With on-blur mode, gating the button on `isValid` would need a click-to-blur then a second click
+  to submit; `handleSubmit` still validates on submit, so invalid names are blocked there with the
+  message shown.
+
+**Verified live:** placeholder showed "e.g. Mark Twain", then "e.g. Oscar Wilde" after reload
+(randomizes); typing a too-short name showed **no** error until blur, when "That name is too
+short." appeared; a clean valid name ("Jordan Rivers") submitted in one click and joined; and an
+invalid submit was blocked with its error (incidentally re-confirming the known profanity
+over-match — "Charles Di**ck**ens" trips the filter). No console errors; typecheck + build green.
+
+### Human — tighten the student client + enrich the projector view
+
+> student: remove the QR on the login page; the app doesn't fit on an iPhone 13 (vertical
+> scroll); add a privacy-policy link that opens a modal (short — we reserve the right to record
+> progress (right/wrong) and share with instructional staff).
+> educator projector: keep the QR but also show the question, options, and any timer (a
+> non-interactive reference; reveal shows there too); remove "Open this on the projector…".
+
+**AI implementation.**
+
+*Student — JoinView:* removed the join QR (and its `getJoinQr` query). Added a "Privacy policy"
+link that opens an `IonModal` with a two-sentence policy ("While you play, we reserve the right
+to record your progress — which questions you answer correctly and incorrectly — and to share it
+with the instructional staff for this class. Your name is used only to label that progress …").
+
+*Student — fit on iPhone 13:* the culprit was `.options` collapsing to a **single column** under
+480px (four stacked 96px options overflowed). Kept it a **2×2 grid at all widths**
+(`repeat(2, minmax(0, 1fr))`), trimmed option `min-height` 96→84 and font 1.05→1rem, and reduced
+`.center` padding 24→16 / gap 16→14.
+
+*Educator — ProjectorView:* now subscribes to the game socket and renders the live question as a
+**read-only reference** — prompt, the options in a 2×2 grid (labeled "Option N", no vote bars /
+not clickable), the countdown, and the correct-option highlight on reveal — above the kept
+join-link/QR panel. Removed the "Open this on the projector. Its join screen shows the same QR…"
+line (and the now-inaccurate "(for the projector)" button suffix).
+
+**Verified live (390×844 iPhone 13 viewport + desktop):**
+- Join screen: no QR, "Privacy policy" link present, modal opens with the short text.
+- A graphical question (the tallest case: SVG prompt + four options) measured `overflowPx: 0` —
+  fits with no vertical scroll; options render 2×2.
+- Projector: shows the SVG-prompt question with options; reveal highlighted "Option 3" green;
+  a timed question showed "57s until the answer is revealed". No console errors; typecheck + builds green.
+
+### Human — remove the projector's "Open student app" button
+
+> remove the "open student app" button on the projector view
+
+**AI:** dropped the button (and its now-unused `openOutline` import) from the ProjectorView join
+panel. The QR and the join URL remain. Verified with a stubbed tunnel URL: the panel shows the QR
++ link and no button; typecheck + build green.
+
+_Subsequent sessions are appended below as work proceeds._

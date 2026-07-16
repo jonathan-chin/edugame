@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "edugame",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/orchestrate.mjs", "--no-tunnel", "--skip-build"],
+      "port": 4000
+    },
+    {
+      "name": "edugame-alt",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/orchestrate.mjs", "--no-tunnel", "--skip-build", "--student-port=4200", "--educator-port=4300"],
+      "port": 4200
+    }
+  ]
+}

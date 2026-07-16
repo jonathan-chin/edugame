@@ -1,0 +1,246 @@
+:root {
+  --ion-background-color: #0f1220;
+  --ion-background-color-rgb: 15, 18, 32;
+  --ion-text-color: #eef1f8;
+  --ion-text-color-rgb: 238, 241, 248;
+  --ion-color-primary: #5b8cff;
+  --ion-color-primary-rgb: 91, 140, 255;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-success: #2fbf71;
+  --ion-color-danger: #ff5d6c;
+  --ion-color-warning: #ffb020;
+  --card: #1a1f36;
+  --column-bg: #12162b;
+  --muted: #9aa3c0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Combined dashboard: control (left) + analytics (right). */
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Single inline loading indicator (replaces the old app-wide overlay). */
+.loading {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.projector-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ion-color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.projector-link:hover {
+  text-decoration: underline;
+}
+
+.panel {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+/* Column container: reuses .panel but with a distinct, recessed background so the
+   inner .panel cards visibly sit on top of it. */
+.column {
+  background: var(--column-bg);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 14px;
+}
+
+.caption {
+  color: var(--muted);
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: var(--ion-color-primary);
+  line-height: 1;
+}
+
+/* Top analytics summary: the big accuracy figure (left) beside the anonymize toggle
+   (right). The toggle column sizes to its content so the figure fills the rest; on a
+   narrow panel the two stack. */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+/* Both columns share the same flex basis (~the toggle's fixed 220px-track floor). Two of
+   them only fit side by side when the row is at least 2×330 + gap wide; there they grow
+   equally to a true 50/50. Below that the row can't hold an even split, so flex-wrap drops
+   them to stacked, full-width columns. The explicit basis (not `auto`) also keeps the width
+   independent of the caption's length, so the track never bounces when toggled. */
+.summary-figure {
+  flex: 1 1 330px;
+  text-align: center;
+}
+.summary-figure .stat {
+  font-size: 3rem;
+}
+.summary-substats {
+  margin-top: 8px;
+}
+.summary-toggle {
+  flex: 1 1 330px;
+}
+
+.bar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  height: 10px;
+  overflow: hidden;
+  flex: 1;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--ion-color-primary);
+}
+
+/* Answer options laid out 2-up (a 2x2 grid for the usual four options). Collapses to a
+   single column only when the panel gets genuinely narrow. */
+.answer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .answer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vote-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  height: 28px;
+  overflow: hidden;
+  position: relative;
+}
+.vote-fill {
+  height: 100%;
+  background: rgba(91, 140, 255, 0.5);
+  transition: width 0.25s ease;
+}
+
+/* Per-question countdown + timer setter */
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timer-count {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ion-color-primary);
+  min-width: 3ch;
+}
+.timer.urgent .timer-count {
+  color: var(--ion-color-danger);
+}
+.timer-input {
+  --background: rgba(255, 255, 255, 0.06);
+  --padding-start: 10px;
+  --padding-end: 10px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.svg {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+.svg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Drag-to-confirm anonymization toggle */
+.anon {
+  position: relative;
+  width: 220px;
+  height: 44px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.08);
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+  overflow: hidden;
+}
+.anon.on {
+  background: rgba(255, 176, 32, 0.22);
+}
+.anon-knob {
+  position: absolute;
+  top: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: var(--ion-color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.anon.on .anon-knob {
+  background: var(--ion-color-warning);
+}
+/* Track-flanking labels (pulled out of the slider). The side matching the current state
+   is emphasized. */
+.anon-side {
+  font-size: 0.82rem;
+  color: var(--muted);
+  user-select: none;
+  transition: color 0.18s ease;
+}
+.anon-side.active {
+  color: var(--ion-text-color);
+  font-weight: 600;
+}
