@@ -1059,4 +1059,32 @@ line (and the now-inaccurate "(for the projector)" button suffix).
 panel. The QR and the join URL remain. Verified with a stubbed tunnel URL: the panel shows the QR
 + link and no button; typecheck + build green.
 
+### Human — embed the questions in the session record (anticipating non-deterministic modules)
+
+> improve session recording — future modules' generation may be less deterministic, and for
+> ease of use, embed the questions in the meta.json sidecar. This is hard for image/graph
+> questions. Propose solutions.
+
+**AI proposed** a baseline (embed each revealed question's structured essentials + the **correct
+answer**, which nothing recorded before) and three ways to handle graphics: inline the SVG, a
+compact re-renderable module "spec", or **sidecar asset files**. **Human chose:** sidecar files;
+embed `questions[]` in `meta.json` with the heavy data written on reveal/end; record
+**revealed** questions only.
+
+**AI implementation:**
+- New shared types `RecordedContent` / `RecordedQuestion`; `SessionManifest` gained
+  `questions: RecordedQuestion[]`.
+- `SessionWriter.recordQuestion(public, key)` externalizes graphics: each `svg` (and any
+  `data:` image/audio) is written to a sidecar file under `sessions/<session>/` and referenced
+  by `path`; text and the correct answer stay inline. The assets dir is created lazily.
+- On **reveal**, `GameService` records the just-revealed question (with its `AnswerKey`) into the
+  session; `manifest()` includes the growing `questions[]`. Only refs live in the JSON, so it
+  stays small and the heavy files are written once per question. `APP_VERSION` → 0.4.0.
+
+**Verified live:** revealed a mix of graphical (SVG prompt + text options) and numerical (text
+prompt + SVG options) questions. The manifest recorded 9/9 revealed questions — graphical prompts
+and numerical options as `{kind:"svg", path:"<session>/…svg"}`, text inline, and the correct
+`{format, correctOptionId}` on each. 30 sidecar `.svg` files written = 30 refs in the manifest;
+the manifest held **0** inline `<svg>` and stayed ~11 KB. Typecheck + builds green.
+
 _Subsequent sessions are appended below as work proceeds._

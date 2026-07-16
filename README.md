@@ -89,7 +89,12 @@ Per session, written to `sessions/`:
 
 - `<session>.csv` — one row per graded answer (`timestamp, session, studentToken,
   studentName, questionId, moduleId, skill, difficulty, submission, isCorrect`).
-- `<session>.meta.json` — session manifest incl. the **seed**, timings, modules used.
+- `<session>.meta.json` — session manifest: the **seed**, timings, modules used, and a
+  `questions[]` record of every revealed question — prompt/option text, the **correct answer**,
+  and (for graphics) a `path` to a sidecar SVG. Captured at reveal time, so a session is
+  self-describing even if a module's generation isn't reproducible from the seed.
+- `<session>/` — sidecar asset files (the server-rendered SVGs) referenced by the manifest;
+  text and answers stay inline, only graphics are externalized to keep the JSON lean.
 
 ## Development
 

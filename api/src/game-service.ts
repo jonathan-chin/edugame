@@ -118,6 +118,10 @@ export class GameService {
   reveal() {
     this.clearTimer();
     const { rows, reveal } = this.session.reveal();
+    // Record the just-revealed question (with its correct answer) for the session file. The
+    // writer externalizes any graphics to sidecar files; the manifest keeps only refs.
+    const generated = this.session.currentGenerated();
+    if (generated) this.session.addRecordedQuestion(this.writer.recordQuestion(generated.public, generated.key));
     this.writer.appendRows(rows);
     this.writer.writeManifest(this.session.manifest());
     this.studentHub?.broadcast({ type: "reveal", reveal });

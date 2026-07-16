@@ -21,6 +21,7 @@ import {
   MODULES,
   type Phase,
   type PublicGameState,
+  type RecordedQuestion,
   type RevealInfo,
   type RNG,
   type SessionManifest,
@@ -64,6 +65,8 @@ export class GameSession {
   private readonly currentAnswers = new Map<string, Submission>();
   private readonly modulesUsed = new Set<string>();
   private readonly events: AnswerEventRow[] = [];
+  /** A record of every question revealed to the class, embedded in the manifest. */
+  private readonly recordedQuestions: RecordedQuestion[] = [];
 
   constructor(sessionId: string, seed: string) {
     this.sessionId = sessionId;
@@ -219,6 +222,17 @@ export class GameSession {
     return this.revealInfo(this.current.key, this.current.public.id);
   }
 
+  /** The current generated question (public instance + answer key), for the reveal-time
+   *  recording. Kept until the next question is drawn. */
+  currentGenerated(): GeneratedQuestion | null {
+    return this.current;
+  }
+
+  /** Append a recorded question (built by the writer, which externalizes its graphics). */
+  addRecordedQuestion(q: RecordedQuestion): void {
+    this.recordedQuestions.push(q);
+  }
+
   end(): void {
     this.endedAt = new Date().toISOString();
   }
@@ -359,6 +373,7 @@ export class GameSession {
       modulesUsed: [...this.modulesUsed],
       studentCount: this.students.size,
       questionCount: this.questionNumber,
+      questions: this.recordedQuestions,
     };
   }
 }

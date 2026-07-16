@@ -8,6 +8,8 @@
  * The CSV header order is defined here so the writer (api) and any reader agree on it.
  */
 
+import type { RecordedQuestion } from "./recording.js";
+
 export interface AnswerEventRow {
   timestamp: string; // ISO 8601
   session: string;
@@ -57,6 +59,9 @@ export interface SessionManifest {
   modulesUsed: string[];
   studentCount: number;
   questionCount: number;
+  /** Every question revealed to the class, captured at reveal time (graphics live in sidecar
+   *  files under `sessions/<session>/`, referenced by path). Empty until the first reveal. */
+  questions: RecordedQuestion[];
 }
 
 // ---- Aggregated views (computed live, sent to the educator client) ----
