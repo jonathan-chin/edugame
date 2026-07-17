@@ -7,7 +7,7 @@
 import type { PublicGameState, RevealInfo } from "@edugame/shared";
 import { IonButton, IonSpinner, IonText, IonToast } from "@ionic/react";
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { submitAnswer } from "../lib/api";
 import { ContentView } from "../lib/ContentView";
 import { useCountdown } from "../lib/useCountdown";
@@ -16,23 +16,23 @@ export function PlayView({
   token,
   state,
   reveal,
+  selected,
+  onSelect,
 }: {
   token: string;
   state: PublicGameState | null;
   reveal: RevealInfo | null;
+  /** The student's current pick, held in the parent so it survives a tab switch (it lives
+   *  above PlayView, which unmounts when the "My progress" tab is shown). */
+  selected: string | null;
+  onSelect: (optionId: string) => void;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const question = state?.question ?? null;
   const locked = state?.locked ?? false;
   const revealed = !!reveal && reveal.questionId === question?.id;
   const remaining = useCountdown(state?.questionEndsAt ?? null, state?.serverNow);
   const showTimer = remaining != null && !revealed;
-
-  // Reset the local selection whenever a new question appears.
-  useEffect(() => {
-    setSelected(null);
-  }, [question?.id]);
 
   const mutation = useMutation({
     mutationFn: (optionId: string) => submitAnswer(token, { format: "multiple-choice", optionId }),
@@ -53,7 +53,7 @@ export function PlayView({
 
   const pick = (optionId: string) => {
     if (locked) return;
-    setSelected(optionId);
+    onSelect(optionId);
     mutation.mutate(optionId);
   };
 

@@ -34,6 +34,9 @@ export function App() {
   const [name, setName] = useState<string>(() => sessionStorage.getItem(NAME_KEY) ?? "");
   const [tab, setTab] = useState<"play" | "progress">("play");
   const { state, reveal } = useGameSocket(token);
+  // The current answer pick lives here, above PlayView, so it survives switching to the
+  // "My progress" tab and back (PlayView unmounts on that switch). Resets per question below.
+  const [selected, setSelected] = useState<string | null>(null);
   // A single inline indicator while the first game state loads over the socket (mirrors the
   // educator app). Once loaded, `state` stays set, so a later mid-game reconnect won't
   // re-trigger it.
@@ -75,6 +78,11 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Clear the pick whenever a new question opens (skip/next/reveal→next all change the id).
+  useEffect(() => {
+    setSelected(null);
+  }, [state?.question?.id]);
+
   if (!token) {
     return (
       <IonPage>
@@ -114,7 +122,7 @@ export function App() {
             <p className="caption">Connecting…</p>
           </div>
         ) : tab === "play" ? (
-          <PlayView token={token} state={state} reveal={reveal} />
+          <PlayView token={token} state={state} reveal={reveal} selected={selected} onSelect={setSelected} />
         ) : (
           <ProgressView token={token} revealSignal={reveal?.questionId ?? null} />
         )}
