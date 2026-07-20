@@ -1415,3 +1415,35 @@ The human closed out the standing caveats the AI had been repeating at the end o
 **Note surfaced (AI, about its own conduct):** the AI had been restating these as "still open" at the
 end of successive reports. Decided items should be treated as closed — repeating them reads as not
 having listened, and buries the findings that do need attention.
+
+### Human — the module picker should save on any dismissal
+
+The human reported that ticking modules and dismissing the picker by clicking outside discarded the
+changes, and asked to connect the commit to `onDismiss` in general rather than only the Done button.
+
+**AI implementation:** commit moved into `onDidDismiss`, which fires however the modal was closed —
+backdrop, Escape, or Done flipping the parent's open state. Done therefore only closes, so there is
+a single commit path and no double POST. The draft is read through a ref: `onDidDismiss` binds its
+handler when the modal mounts, so reading `draft` from that closure yields the value as of that
+render — empty — and every tick would be silently dropped.
+
+**Follow-up from the human:** dismissing with zero modules selected should also save, with the
+"Start game" button left to do the gating. That required a server change as well — `setModulePool`
+was rejecting an empty list with a 400, so clearing every module would have failed with an error
+rather than saving. Enforcement now lives in one place: `drawQuestion` still returns 409 "Select at
+least one module before starting.", mirrored by the already-disabled Start button. An empty pool is
+a legitimate state to leave the picker in.
+
+**Second follow-up:** a "Clear" button in the toolbar, aligned left. It clears the draft only, so it
+behaves like any other tick and lands when the modal closes.
+
+**Verified live:** Clear with three modules selected empties the draft, self-disables, and leaves the
+committed pool untouched; closing afterwards commits the empty pool and disables "Start game" with
+its hint. Ticking and dismissing without pressing Done saves the selection. Server-side, POSTing an
+empty pool now returns 200 (was 400) while starting a question with one still returns 409. Typecheck
++ build green.
+
+**Note on the AI's own verification:** an early `curl` immediately after closing the modal still
+showed the previous pool and was nearly reported as a failure — it was racing the in-flight POST.
+The settled read was correct. Worth remembering that a read taken straight after a UI action can
+beat the request it is meant to observe.

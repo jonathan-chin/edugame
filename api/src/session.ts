@@ -170,10 +170,16 @@ export class GameSession {
   }
 
   /** Replace the pool of modules new questions are drawn from. */
+  /**
+   * Replace the pool of modules new questions are drawn from. Unknown ids are dropped.
+   *
+   * An empty pool is allowed: it is a legitimate in-between state while an educator is choosing,
+   * and rejecting it here would mean the picker could not faithfully save what they left ticked.
+   * Starting a question with no modules is what actually fails — see `drawQuestion`, which is the
+   * real guard, mirrored by the disabled "Start game" button.
+   */
   setModulePool(ids: string[]): void {
-    const valid = ids.filter((id) => getModule(id));
-    if (valid.length === 0) throw new HttpError(400, "Select at least one module");
-    this.modulePool = valid;
+    this.modulePool = ids.filter((id) => getModule(id));
   }
 
   getModulePool(): string[] {

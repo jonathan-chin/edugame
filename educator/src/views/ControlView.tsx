@@ -210,11 +210,8 @@ export function ControlView({
         isOpen={pickerOpen}
         modules={modules.data ?? []}
         selected={selectedIds}
-        onDismiss={() => setPickerOpen(false)}
-        onApply={(ids) => {
-          poolMut.mutate(ids);
-          setPickerOpen(false);
-        }}
+        onClose={() => setPickerOpen(false)}
+        onApply={(ids) => poolMut.mutate(ids)}
       />
     </div>
   );
