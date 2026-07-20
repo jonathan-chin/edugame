@@ -22,7 +22,7 @@ export function createEducatorApp(service: GameService, educatorDist: string | n
 
   api.get("/health", (_req, res) => res.json({ ok: true }));
 
-  api.get("/state", (_req, res) => res.json(service.session.publicState()));
+  api.get("/state", (_req, res) => res.json(service.state()));
 
   api.get("/modules", (_req, res) => res.json(moduleCatalog()));
 
@@ -46,17 +46,17 @@ export function createEducatorApp(service: GameService, educatorDist: string | n
   api.post("/next", (req, res) => {
     const moduleId = req.body?.moduleId ? String(req.body.moduleId) : undefined;
     service.next(moduleId);
-    res.json(service.session.publicState());
+    res.json(service.state());
   });
 
   api.post("/skip", (_req, res) => {
     service.skip();
-    res.json(service.session.publicState());
+    res.json(service.state());
   });
 
   api.post("/reveal", (_req, res) => {
     service.reveal();
-    res.json(service.session.publicState());
+    res.json(service.state());
   });
 
   api.post("/end", (_req, res) => {
@@ -67,7 +67,7 @@ export function createEducatorApp(service: GameService, educatorDist: string | n
   // Educator "log out": finalize the current game, log out all students, and start fresh.
   api.post("/reset", (_req, res) => {
     service.reset();
-    res.json(service.session.publicState());
+    res.json(service.state());
   });
 
   // The ngrok URL is pushed here by the orchestrator once the tunnel is up; the

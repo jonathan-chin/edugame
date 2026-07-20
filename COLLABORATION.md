@@ -1189,8 +1189,6 @@ errors. (Note: this is client-only, so a full page refresh still won't restore t
 a `GET /api/answer` server round-trip, would; deferred. It also does not add a per-question history —
 that's a separate, feasible feature since the server already stores each student's graded events.)
 
-_Subsequent sessions are appended below as work proceeds._
-
 ### Human — current-session question history for students
 
 Following on from issue #1, the human asked for a per-student history of questions and whether they
@@ -1224,3 +1222,50 @@ attach so a short list keeps loading until the screen is full.
 correct one collapses to a single green column; a chart question re-renders its SVG from the cache
 and survives a full page refresh; with 12 answered questions the list starts at 8 and reaches 12 on
 scroll, then stops and drops the trailing spinner. Typecheck + build green.
+
+### Human — a locked phone was evicting students mid-game
+
+The human reported that a student's phone auto-locking invalidated their token, and asked whether it
+was related to the backgrounded-tab note from the history work. It was — same root cause, with a
+worse consequence than a re-login.
+
+**Chain:** phone locks -> the mobile browser suspends timers and drops the WebSocket -> heartbeats
+stop -> after **5 seconds** `sweepAbsentStudents` called `removeStudent(token)`. Reconnecting could
+not repair it, because `markSeen` is guarded by `hasStudent(token)` — now false, so the resumed
+heartbeat was discarded and the next request 401'd them to the join screen. Worse, `removeStudent`
+also drops `currentAnswers`, so a student who answered and *then* locked their phone had that answer
+silently discarded: ungraded, missing from "N/M answered", absent from the CSV.
+
+The design fault was one timeout doing two jobs: "is this screen on right now" (fine at 5s) and "is
+this person still in the class" (not fine at 5s).
+
+**AI implementation (server):** the sweep no longer removes anyone — it only pushes a fresh state
+when the connected count moves. `lastSeen` is now purely connection state; `GameService.state()`
+decorates the session's public state with `studentCount` = *connected* students, and every state read
+goes through it. Enrolment now ends only on an explicit logout (`leave`) or an educator `reset`.
+
+**Tradeoff accepted:** a student who closes their tab and walks away stays on the analytics roster
+until the educator resets. Chosen deliberately — a stale name in the roster costs nothing, while an
+evicted student loses their answer mid-question.
+
+**AI implementation (client):** the human then asked to fix the storage half. The token lived in
+`sessionStorage`, which dies with the tab — and iOS may discard a backgrounded tab outright, so a
+locked phone could still return to a join screen even with the server fixed. Moved the token/name to
+`localStorage` (`student/src/lib/identity.ts`), stamped with the game session id: the first state
+naming a different session clears the identity and starts a fresh join, so a token can never leak
+into the next class.
+
+**Verified live:** a student who went quiet for 9s (well past the 5s timeout) kept a valid token
+(HTTP 200, previously 401), kept her submitted answer (`answeredCount` stayed 1), and was graded
+normally on reveal — while `studentCount` excluded her and the roster still listed her. A brand-new
+tab picked up the stored identity and rejoined the game in progress (the `sessionStorage` case that
+used to fail). A *valid* token stamped with a stale session id was cleared on load and sent to the
+join screen, isolating the mismatch guard from the 401 path. Typecheck + build green.
+
+**Note surfaced:** shutting down the API process still invalidates every token — both servers share
+one in-memory `GameService`, and a restart mints a new session id, so the roster, unrevealed answers
+and every student's history are lost (revealed rows and the manifest survive on disk). The human
+confirmed this is intended behaviour for now; persisting and rehydrating the roster would be a
+separate piece of work.
+
+_Subsequent sessions are appended below as work proceeds._

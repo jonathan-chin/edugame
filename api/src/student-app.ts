@@ -22,7 +22,7 @@ export function createStudentApp(service: GameService, studentDist: string | nul
 
   api.get("/health", (_req, res) => res.json({ ok: true }));
 
-  api.get("/state", (_req, res) => res.json(service.session.publicState()));
+  api.get("/state", (_req, res) => res.json(service.state()));
 
   api.post("/join", (req, res) => {
     const check = checkName(String(req.body?.name ?? ""));

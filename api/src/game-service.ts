@@ -5,7 +5,7 @@
  *   - votes/analytics -> educator only (kept off the public channel)
  */
 
-import type { ServerMessage } from "@edugame/shared";
+import type { PublicGameState, ServerMessage } from "@edugame/shared";
 import type { SessionWriter } from "./csv-writer.js";
 import type { Hub } from "./hub.js";
 import type { GameSession } from "./session.js";
@@ -24,10 +24,20 @@ export class GameService {
   // ---- student presence (heartbeat) ----
   /** token -> epoch ms of the last heartbeat from that student's socket. */
   private readonly lastSeen = new Map<string, number>();
-  /** A student whose last heartbeat is older than this is treated as gone. Kept a few
-   *  multiples of the client's ~2s heartbeat so a single delayed beat never evicts anyone. */
+  /**
+   * A student whose last heartbeat is older than this counts as **disconnected** — their
+   * screen is off, the tab is backgrounded, or the network dropped. Kept a few multiples of
+   * the client's ~2s heartbeat so a single delayed beat never flickers the count.
+   *
+   * This is deliberately *only* about the live count. It must never unenrol anyone: a phone
+   * that auto-locks stops heartbeating within seconds, and dropping the student there would
+   * invalidate their token and discard the answer they already submitted for the open
+   * question. Enrolment ends on an explicit logout (`leave`) or an educator `reset`.
+   */
   private readonly PRESENCE_TIMEOUT_MS = 5000;
   private readonly PRESENCE_SWEEP_MS = 2000;
+  /** Last connected count broadcast, so the sweep only pushes state when it actually moves. */
+  private lastConnectedCount = 0;
 
   /** The live game. Replaced wholesale by reset(), so it is mutable (not readonly). */
   session: GameSession;
@@ -47,6 +57,15 @@ export class GameService {
     return this.writer.paths.csv;
   }
 
+  /**
+   * The public state as clients should see it: the session's own view, with `studentCount`
+   * narrowed to the students currently connected. The session tracks who is *enrolled*;
+   * only this service knows who is *connected* (see presence below).
+   */
+  state(): PublicGameState {
+    return { ...this.session.publicState(), studentCount: this.connectedCount() };
+  }
+
   attachHubs(studentHub: Hub, educatorHub: Hub): void {
     this.studentHub = studentHub;
     this.educatorHub = educatorHub;
@@ -55,7 +74,7 @@ export class GameService {
   // ---- messages a newly-connected client should receive immediately ----
 
   helloStudent(): ServerMessage[] {
-    const msgs: ServerMessage[] = [{ type: "state", state: this.session.publicState() }];
+    const msgs: ServerMessage[] = [{ type: "state", state: this.state() }];
     const reveal = this.session.currentReveal();
     if (reveal) msgs.push({ type: "reveal", reveal });
     return msgs;
@@ -63,7 +82,7 @@ export class GameService {
 
   helloEducator(): ServerMessage[] {
     const msgs: ServerMessage[] = [
-      { type: "state", state: this.session.publicState() },
+      { type: "state", state: this.state() },
       { type: "analytics", snapshot: this.session.analytics() },
     ];
     const reveal = this.session.currentReveal();
@@ -155,24 +174,29 @@ export class GameService {
     if (this.session.hasStudent(token)) this.lastSeen.set(token, Date.now());
   };
 
-  /** Begin periodically dropping students who have stopped sending heartbeats (tab closed,
-   *  network lost, or logged out). Called once at startup. */
+  /** How many enrolled students are currently connected (heartbeat within the timeout). */
+  private connectedCount(): number {
+    const cutoff = Date.now() - this.PRESENCE_TIMEOUT_MS;
+    return this.session.studentTokens().filter((token) => (this.lastSeen.get(token) ?? 0) >= cutoff).length;
+  }
+
+  /** Begin watching for students whose heartbeat has gone quiet (screen off, tab backgrounded,
+   *  network lost), so the educator's live count keeps up. Called once at startup. */
   startPresenceSweep(): void {
     setInterval(() => this.sweepAbsentStudents(), this.PRESENCE_SWEEP_MS);
   }
 
+  /**
+   * Push a fresh state whenever the connected count moves. Note what this does *not* do:
+   * it never removes anyone. Going quiet is routine — a locked phone stops heartbeating in
+   * seconds — and unenrolling there would invalidate a token mid-game and throw away an
+   * answer already submitted for the open question. Coming back just resumes heartbeats.
+   */
   private sweepAbsentStudents(): void {
-    const cutoff = Date.now() - this.PRESENCE_TIMEOUT_MS;
-    const gone = this.session.studentTokens().filter((token) => (this.lastSeen.get(token) ?? 0) < cutoff);
-    if (gone.length === 0) return;
-    for (const token of gone) {
-      this.session.removeStudent(token);
-      this.lastSeen.delete(token);
-    }
-    this.writer.writeManifest(this.session.manifest());
+    const connected = this.connectedCount();
+    if (connected === this.lastConnectedCount) return;
+    this.lastConnectedCount = connected;
     this.broadcastState();
-    this.broadcastVotes();
-    this.broadcastAnalytics();
   }
 
   /** Educator "log out": finalize and persist the current game, send every student back to
@@ -181,6 +205,7 @@ export class GameService {
     this.end(); // clears the timer, marks endedAt, and writes the outgoing manifest
     this.studentHub?.broadcast({ type: "reset" });
     this.lastSeen.clear();
+    this.lastConnectedCount = 0;
     const bundle = this.newSession();
     this.session = bundle.session;
     this.writer = bundle.writer;
@@ -198,13 +223,13 @@ export class GameService {
     this.clearTimer();
     const endsAt = this.session.getQuestionDeadline();
     if (endsAt === null) return;
-    const questionId = this.session.publicState().question?.id ?? null;
+    const questionId = this.state().question?.id ?? null;
     const delay = Math.max(0, endsAt - Date.now());
     this.revealTimer = setTimeout(() => {
       this.revealTimer = null;
       // Only fire if we're still on the same open question (a manual reveal/skip/next in
       // the interim cancels this, but guard against any race).
-      const state = this.session.publicState();
+      const state = this.state();
       if (state.phase === "question" && state.question?.id === questionId) {
         try {
           this.reveal();
@@ -225,7 +250,11 @@ export class GameService {
   // ---- broadcasts ----
 
   private broadcastState() {
-    const msg: ServerMessage = { type: "state", state: this.session.publicState() };
+    const state = this.state();
+    // Every push carries the count, so record it here — that keeps the presence sweep from
+    // re-broadcasting a change some other action (join, leave) has already announced.
+    this.lastConnectedCount = state.studentCount;
+    const msg: ServerMessage = { type: "state", state };
     this.studentHub?.broadcast(msg);
     this.educatorHub?.broadcast(msg);
   }

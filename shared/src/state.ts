@@ -18,6 +18,11 @@ export interface PublicGameState {
   /** True once revealed: students can no longer submit or change answers. */
   locked: boolean;
   activeModuleId: string | null;
+  /**
+   * Students currently *connected* — heartbeating within the last few seconds. A student whose
+   * phone locks drops out of this count but stays enrolled, keeping their token and any answer
+   * they already submitted; they reappear when their screen comes back on.
+   */
   studentCount: number;
   /** How many students have a submitted answer for the current question. */
   answeredCount: number;
