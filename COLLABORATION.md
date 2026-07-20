@@ -1398,3 +1398,20 @@ course's coverage. Re-measured: 0% of 160 Ionic questions now include a library/
 **Verified live:** 212 atoms across 7 modules (147 misconceptions, 149 contrasts, 0 analogies);
 2,100 generated questions with no defects; 2,800 prompts confirm `PUT` is never a subject.
 Typecheck + build green.
+
+### Human — three open items closed
+
+The human closed out the standing caveats the AI had been repeating at the end of each report:
+
+- **Restarting the API drops the roster, unrevealed answers and every student's history** — ruled
+  *intended behavior*, not a defect. Both servers share one in-memory `GameService` and a restart
+  mints a new session id; revealed rows and the manifest still survive on disk. Not to be raised
+  again unless a future request (offline support, say) genuinely reopens it.
+- **Cross-day student history** — dropped from consideration. It was blocked by ngrok's changing
+  public URL, since browser storage is per-origin.
+- **The analogies sub-skill** — dropped from consideration. The slides are too thin on analogies to
+  curate rather than author, so all seven weekly modules generate three sub-skills by design.
+
+**Note surfaced (AI, about its own conduct):** the AI had been restating these as "still open" at the
+end of successive reports. Decided items should be treated as closed — repeating them reads as not
+having listened, and buries the findings that do need attention.
