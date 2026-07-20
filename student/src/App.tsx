@@ -15,6 +15,7 @@ import {
 import { logOutOutline } from "ionicons/icons";
 import { useEffect, useState } from "react";
 import { getProgress, leaveGame, SESSION_INVALID_EVENT } from "./lib/api";
+import { cacheQuestion, clearQuestionCache } from "./lib/questionCache";
 import { useGameSocket } from "./lib/useGameSocket";
 import { JoinView } from "./views/JoinView";
 import { PlayView } from "./views/PlayView";
@@ -55,6 +56,7 @@ export function App() {
     const t = token;
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(NAME_KEY);
+    clearQuestionCache();
     setToken(null);
     if (t) leaveGame(t).catch(() => {});
   };
@@ -82,6 +84,13 @@ export function App() {
   useEffect(() => {
     setSelected(null);
   }, [state?.question?.id]);
+
+  // Keep a local copy of each question as it goes live so "My progress" can re-render it —
+  // charts included — in the history. Lives here, not in PlayView, because PlayView unmounts
+  // whenever the student is looking at their progress.
+  useEffect(() => {
+    if (state?.session && state.question) cacheQuestion(state.session, state.question);
+  }, [state?.session, state?.question?.id]);
 
   if (!token) {
     return (
@@ -124,7 +133,11 @@ export function App() {
         ) : tab === "play" ? (
           <PlayView token={token} state={state} reveal={reveal} selected={selected} onSelect={setSelected} />
         ) : (
-          <ProgressView token={token} revealSignal={reveal?.questionId ?? null} />
+          <ProgressView
+            token={token}
+            revealSignal={reveal?.questionId ?? null}
+            session={state?.session ?? null}
+          />
         )}
       </IonContent>
     </IonPage>

@@ -45,6 +45,37 @@ export interface RevealInfo {
   tolerance?: number;
 }
 
+/**
+ * One answered question in a student's session history, newest first.
+ *
+ * The text fields are a lightweight fallback: the client re-renders the *real* question
+ * (charts and all) from the copy it cached when the question was live, looking it up by
+ * `questionId`, and marks `myOptionId` / `correctOptionId`. The text is what's shown when
+ * that cache misses (e.g. the student joined after this question had already been asked).
+ */
+export interface StudentHistoryItem {
+  questionId: string;
+  /** ISO timestamp of the reveal that graded this answer. */
+  at: string;
+  moduleId: string;
+  /** The module's short title, for display. */
+  moduleLabel: string;
+  skill: string;
+  difficulty: number;
+  isCorrect: boolean;
+  myOptionId?: string;
+  correctOptionId?: string;
+  promptText?: string;
+  myAnswerText?: string;
+  correctAnswerText?: string;
+  /**
+   * Every option the question offered. The history row only renders the student's answer and
+   * the correct one, but the full set is carried so a richer review (distractor analysis, "show
+   * all options") needs no server change.
+   */
+  options: { id: string; text?: string }[];
+}
+
 /** A student's own progress view (basic + category/skill breakdowns). */
 export interface StudentProgress {
   token: string;
@@ -54,4 +85,6 @@ export interface StudentProgress {
   accuracy: number;
   byModule: { label: string; answered: number; correct: number; accuracy: number }[];
   bySkill: { label: string; answered: number; correct: number; accuracy: number }[];
+  /** Every question this student answered this session, newest first. */
+  history: StudentHistoryItem[];
 }

@@ -20,10 +20,12 @@ import {
   type GroupStat,
   type Phase,
   type PublicGameState,
+  type RecordedContent,
   type RecordedQuestion,
   type RevealInfo,
   type RNG,
   type SessionManifest,
+  type StudentHistoryItem,
   type StudentProgress,
   type StudentStat,
   type Submission,
@@ -40,6 +42,28 @@ interface StudentRecord {
 export interface RevealResult {
   rows: AnswerEventRow[];
   reveal: RevealInfo;
+}
+
+/**
+ * The readable text of a recorded content node, or undefined when it is purely graphic
+ * (an SVG chart, image or audio clip lives in a sidecar file and has no text to give).
+ * Callers substitute a positional label like "Option 2" in that case.
+ */
+function contentText(content: RecordedContent): string | undefined {
+  switch (content.kind) {
+    case "text":
+      return content.text;
+    case "svg":
+      return content.caption;
+    case "image":
+      return content.alt;
+    case "audio":
+      return content.label;
+    case "composite": {
+      const parts = content.parts.map(contentText).filter((t): t is string => Boolean(t));
+      return parts.length ? parts.join(" ") : undefined;
+    }
+  }
 }
 
 export class GameSession {
@@ -362,7 +386,42 @@ export class GameSession {
       accuracy: mine.length ? correct / mine.length : 0,
       byModule: group((e) => e.moduleId).map((g) => ({ ...g, label: getModule(g.label)?.shortTitle ?? g.label })),
       bySkill: group((e) => e.skill),
+      history: this.historyFor(mine),
     };
+  }
+
+  /**
+   * Turn a student's graded events into a newest-first history, joining each one with the
+   * question recorded at reveal time so we can name the answers. Only text travels here —
+   * the client re-renders the real graphic from its own cache, keyed on `questionId`.
+   */
+  private historyFor(mine: AnswerEventRow[]): StudentHistoryItem[] {
+    const byId = new Map(this.recordedQuestions.map((q) => [q.id, q] as const));
+    return [...mine].reverse().map((e) => {
+      const recorded = byId.get(e.questionId);
+      const correctOptionId =
+        recorded?.correct.format === "multiple-choice" ? recorded.correct.correctOptionId : undefined;
+      const options = (recorded?.options ?? []).map((o, i) => ({
+        id: o.id,
+        text: contentText(o.content) ?? `Option ${i + 1}`,
+      }));
+      const optionText = (id?: string) => (id ? options.find((o) => o.id === id)?.text : undefined);
+      return {
+        questionId: e.questionId,
+        at: e.timestamp,
+        moduleId: e.moduleId,
+        moduleLabel: getModule(e.moduleId)?.shortTitle ?? e.moduleId,
+        skill: e.skill,
+        difficulty: e.difficulty,
+        isCorrect: e.isCorrect === 1,
+        myOptionId: e.submission,
+        correctOptionId,
+        promptText: recorded ? contentText(recorded.prompt) : undefined,
+        myAnswerText: optionText(e.submission),
+        correctAnswerText: optionText(correctOptionId),
+        options,
+      };
+    });
   }
 
   manifest(): SessionManifest {

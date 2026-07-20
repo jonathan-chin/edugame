@@ -1190,3 +1190,37 @@ a `GET /api/answer` server round-trip, would; deferred. It also does not add a p
 that's a separate, feasible feature since the server already stores each student's graded events.)
 
 _Subsequent sessions are appended below as work proceeds._
+
+### Human — current-session question history for students
+
+Following on from issue #1, the human asked for a per-student history of questions and whether they
+got each one right, first for "the same phone across multiple days", then — after the AI showed that
+cross-day identity is blocked by ngrok's changing public URL (localStorage is per-origin) and by the
+session-scoped token — narrowed it to **the current session only**.
+
+Design decisions the human made along the way:
+- **Graphics:** the AI proposed caching each question's content on the client, since the student
+  already receives server-rendered SVG inline over the socket, so replaying a chart costs no extra
+  transfer. The human noted this wouldn't generalize to PNG/audio/video; agreed — those are `src`
+  URLs and are re-fetched (and HTTP-cached) rather than stored.
+- **Row loading:** the human rejected tap-to-expand in favour of **infinite scroll** — "render each
+  row fully but only load X number at a time".
+- **Row content:** "only show their answer and the correct answer (if different), as a 2 column row.
+  however, still track all the other options just in case."
+
+**AI implementation:** `StudentProgress` gained `history[]` (`shared/src/state.ts`), built in
+`GameSession.progress()` by joining the student's graded events with the questions recorded at
+reveal time — text only, including every option offered even though the row renders at most two.
+The student client caches each question's renderable content in `localStorage`, keyed by session id
+and dropped when the session changes, so a row can re-render the real chart; the server's text is
+the fallback on a cache miss. Rows are newest-first, 8 at a time.
+
+**Note surfaced:** `IonInfiniteScroll` silently never fires here — it only attaches its scroll
+listener when it is a direct child of `ion-content`, and this view renders inside a wrapper. Replaced
+with a sentinel plus a plain scroll listener on the content's scroll element, which also re-checks on
+attach so a short list keeps loading until the screen is full.
+
+**Verified live:** a wrong answer renders the 2-column your-answer/correct-answer comparison, a
+correct one collapses to a single green column; a chart question re-renders its SVG from the cache
+and survives a full page refresh; with 12 answered questions the list starts at 8 and reaches 12 on
+scroll, then stops and drops the trailing spinner. Typecheck + build green.
