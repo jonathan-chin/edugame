@@ -1269,3 +1269,132 @@ confirmed this is intended behaviour for now; persisting and rehydrating the ros
 separate piece of work.
 
 _Subsequent sessions are appended below as work proceeds._
+
+### Human — course vocabulary modules from the bootcamp slides (Week 1 pilot)
+
+The human asked how to turn the Marp slide decks in `jonathan-chin/citytech-ttpr-2026-summer`
+into question modules — vocabulary based, one per week — and chose to pilot Week 1 before
+committing to all seven.
+
+**What the AI found in the source:** 28 decks, Mon–Thu across 7 weeks. The week theme is in each
+deck's `footer:` frontmatter and the day's topic in `description:`, so the module boundaries fall
+out of the files. Two patterns turned out to be unusually valuable: ~38 `X vs. Y` slide titles map
+straight onto the existing `contrast` field (which drives the hardest question type), and 63
+"Follow Up:" slides mark concepts that needed re-teaching — a precise record of where the class got
+confused, which is what the `misconception` field wants.
+
+**The catch, surfaced before any code:** the 380 `- **Term**: definition` bullets are not 380
+vocabulary atoms. Roughly half are install instructions, link lists, or "Term: value" mappings, and
+many genuine definitions are written to be read *beside their slide title* rather than standing
+alone — which an answer option must do. So this is a curation job that a script accelerates, not a
+parser. The AI recommended against generating questions from markdown at runtime.
+
+**AI implementation:** `scripts/extract-course-vocab.mjs` drafts candidates from a week's decks
+(four patterns, each with provenance) and prints them for review; `shared/src/modules/course-vocab.ts`
+holds the curated Week 1 bank — 30 atoms, all with definitions, plus 14 misconceptions, 7 analogies
+and 22 contrast pairs. It reuses the existing `generateVocab` wholesale: `VocabAtom` and
+`makeVocabModule` are now exported, and `level` became optional since weekly modules don't split by
+difficulty. One bank per week is deliberate — distractors are drawn from the same bank, so a Week 1
+question offers other git and shell answers rather than something from Data Visualization.
+
+**Design note surfaced for review:** red-flag questions inherited the interview-prep phrasing ("A
+recruiter asks you about Merge conflict…"), which fits `git` but not `Blocker` or `Merge conflict`.
+Added an optional `redflagPrompt` to `VocabOptions` — the default is unchanged, and the course
+modules ask "Which of these is a common misconception about X?" instead. One word reverts it.
+
+**Verified live:** the module appears in the educator picker as "Week 1 · Environment Setup and
+Developer Foundations"; drawing six questions through the real API produced all four sub-skills with
+correct keys and same-topic distractors ("Which describes Clone, but not Fork?" traps with Fork's own
+distinguishing phrase). A bank check confirmed no dangling `contrast.with` targets and no duplicate
+terms — a dangling target fails silently, dropping that term from Distinctions rather than erroring.
+Typecheck + build green across all workspaces.
+
+**Open:** analogies are the thin spot — Week 1's decks contain exactly one ELI5 slide, so the three
+git-integration analogies are the course's own and the remaining four were authored to match its
+voice. Weeks 2–7 await the human's read on atom quality.
+
+### Human — scaling the course vocabulary modules to all seven weeks
+
+After reviewing the Week 1 pilot the human said to drop analogies for now and scale to every week.
+
+**AI approach:** the six remaining weeks are independent, so they were curated in parallel — one
+agent per week, each reading its four decks in full against a shared spec (self-contained
+definitions, mutual `contrast` pairs whose partner exists in the same bank, misconceptions phrased
+as flat assertions a student would actually say, no analogies, faithful to the slides). Every
+returned bank was then validated centrally rather than trusted.
+
+**Result:** 215 atoms across 7 modules — 149 misconceptions and 153 contrast fields. Weeks 2–7
+carry no analogies, so those modules generate three sub-skills instead of four; `generateVocab`
+only offers a question type its bank can support, so this needed no special-casing.
+
+**Guardrail added first:** a dangling `contrast.with` is silent — the generator skips the atom and
+the module quietly loses Distinctions. Before multiplying one bank into seven, `makeVocabModule`
+now calls `validateVocabBank`, which throws at import on a dangling reference, a duplicate term, or
+a missing definition. Verified it catches all three and passes valid banks.
+
+**Defect found and fixed while sampling:** in a Distinctions question, distractors drawn from atoms
+with no `contrast` fell back to their full definition, making those options visibly longer. Measured
+over 394 generated questions: the correct answer was the longest option only **8%** of the time
+against a 25% baseline, so "ignore the long one" reliably eliminated a wrong answer. The generator
+now prefers other atoms' `thisIs` phrases and only falls back when a bank has too few. After: 21%,
+and the within-question length spread dropped from 46 to 16 characters. This improves the existing
+recruiter vocabulary modules too.
+
+**Verified live:** 2,100 generated questions across the seven modules — every one with four distinct
+options, a resolvable key, and no empty text. All seven appear in the educator picker; a mixed pool
+of Weeks 2/4/6/7 draws correctly from each. Typecheck + build green.
+
+**Notes surfaced:** ten terms are taught in more than one week. Most are consistent restatements
+(Component, Props, Library, Framework, Node.js, URL parameter, Dirty/Clean data) and are harmless —
+distractors never cross bank boundaries. But **Absolute path** and **Relative path** mean *filesystem*
+paths in Week 1 and *import* paths in Week 2. Both match their own slides, so the atoms were left
+alone and annotated in place rather than renamed. The per-week agents also flagged individual
+judgement calls worth an instructor's eye — Week 3's `PUT` rests on a single parenthetical, Week 2's
+`main`/`master` pair distinguishes only on provenance, and Week 5's Ionic is called both a library
+and a framework on the same slide.
+
+### Human — trimming the course modules after review
+
+Reviewing the seven-week set, the human made three calls:
+
+- **Filesystem vs import paths**: "similar enough to not have to make a distinction." The Week 1 /
+  Week 2 overlap on `Absolute path` / `Relative path` stands as-is; the in-place annotation warning
+  about the two senses was removed rather than left implying a problem.
+- **Removed `PUT` and `Ionic`** as too ambiguous to ask about — the decks teach `PUT` only in a
+  single parenthetical, and call Ionic both a library and a framework on one slide.
+- **Removed the Week 1 analogies** for consistency, since Weeks 2–7 have none.
+
+**AI implementation:** dropping a term is not a one-line delete — `PATCH` contrasted with `PUT` and
+`Capacitor` with `Ionic`, so both would have become dangling references. The `validateVocabBank`
+guardrail added earlier exists for exactly this: it throws at import rather than silently dropping
+those atoms from Distinctions. Both partner atoms were kept with their contrast fields removed, so
+`PATCH` and `Capacitor` still generate definition and misconception questions.
+
+**Verified live:** 213 atoms across 7 modules (148 misconceptions, 149 contrasts, zero analogies);
+all seven now generate exactly three sub-skills, with Week 1 no longer producing Analogies. 2,100
+generated questions, no defects. 1,600 prompts confirmed neither `PUT` nor `Ionic` is ever a
+question subject — `Ionic` still appears inside `Capacitor`'s definition as prose context, which is
+intended. Typecheck + build green.
+
+### Human — restore Ionic without the library/framework question
+
+The human clarified the original intent: keep `Ionic` as a term, just never ask whether it is a
+library or a framework.
+
+**AI implementation:** re-added `Ionic` defined as "the toolkit used to build hybrid apps…" — no
+classification either way — and restored the mutual `Ionic`/`Capacitor` contrast, which draws the
+line the decks *are* clear about: shared UI components vs. access to native device features.
+
+**Second-order problem found by checking, not by assuming:** Week 5 still held its own `Library` and
+`Framework` atoms, and their phrases were landing as distractors inside Ionic questions. In 18% of
+Ionic draws, an option like "Code you call when you want it, and can swap out" appeared next to
+"Which describes Ionic, but not Capacitor?" — which is *arguable* rather than wrong, since the decks
+call Ionic both. That is precisely the question the human asked not to ask, reintroduced sideways.
+
+Removed `Library` and `Framework` from Week 5 only. Week 2 carries the pair with its contrast and
+misconception intact, and has no Ionic in the bank to collide with, so nothing is lost from the
+course's coverage. Re-measured: 0% of 160 Ionic questions now include a library/framework option.
+
+**Verified live:** 212 atoms across 7 modules (147 misconceptions, 149 contrasts, 0 analogies);
+2,100 generated questions with no defects; 2,800 prompts confirm `PUT` is never a subject.
+Typecheck + build green.

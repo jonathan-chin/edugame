@@ -28,9 +28,10 @@ import type { RNG } from "../rng.js";
 
 type Level = "beginner" | "advanced";
 
-interface VocabAtom {
+export interface VocabAtom {
   term: string;
-  level: Level;
+  /** Which level module asks *about* this term. Omitted by modules that don't split by level. */
+  level?: Level;
   definition: string;
   misconception?: string;
   analogy?: string;
@@ -135,11 +136,22 @@ function assemble(rng: RNG, moduleId: string, type: QType, prompt: string, corre
   };
 }
 
+/** Per-module wording tweaks. The defaults are the interview-prep phrasing. */
+export interface VocabOptions {
+  /**
+   * How to ask a red-flag question. The default frames it as a recruiter conversation, which
+   * suits interview vocabulary; a course-review module wants plainer wording, since a
+   * misconception like "a merge conflict means you did something wrong" is not something you
+   * would say to a recruiter in the first place.
+   */
+  redflagPrompt?: (term: string) => string;
+}
+
 /**
  * @param subjects the atoms this module asks *about* (its difficulty level)
  * @param bank     the full domain bank, used for distractors and pair-partners
  */
-function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: VocabAtom[]): GeneratedQuestion {
+function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: VocabAtom[], opts: VocabOptions = {}): GeneratedQuestion {
   const byTerm = new Map(bank.map((a) => [a.term, a] as const));
   const bankDefs = bank.filter((a) => a.definition);
   const bankAnalogies = bank.filter((a) => a.analogy);
@@ -167,7 +179,12 @@ function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: 
     const a = rng.pick(subjContrast);
     const partner = byTerm.get(a.contrast!.with)!;
     const trap = partner.contrast?.thisIs ?? partner.definition;
-    const others = bank.filter((x) => x !== a && x !== partner).map((x) => x.contrast?.thisIs ?? x.definition);
+    // Prefer other atoms' `thisIs` phrases for the remaining distractors. Falling back to a full
+    // definition makes that option visibly longer than the rest, which gives the answer away on
+    // shape alone — so only reach for definitions when the bank has too few contrast phrases.
+    const rest = bank.filter((x) => x !== a && x !== partner);
+    const phrases = rest.filter((x) => x.contrast).map((x) => x.contrast!.thisIs);
+    const others = phrases.length >= 2 ? phrases : [...phrases, ...rest.filter((x) => !x.contrast).map((x) => x.definition)];
     const distractors = [trap, ...rng.shuffle(others).slice(0, 2)];
     return assemble(rng, moduleId, type, `Which describes ${a.term}, but not ${partner.term}?`, a.contrast!.thisIs, distractors);
   }
@@ -175,15 +192,45 @@ function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: 
   if (type === "redflag") {
     const a = rng.pick(subjMisc);
     const distractors = [a.definition, ...rng.shuffle(bankDefs.filter((x) => x !== a).map((x) => x.definition)).slice(0, 2)];
-    return assemble(rng, moduleId, type, `A recruiter asks you about ${a.term}. Which answer is a red flag — something you should NOT say?`, a.misconception!, distractors);
+    const prompt =
+      opts.redflagPrompt?.(a.term) ??
+      `A recruiter asks you about ${a.term}. Which answer is a red flag — something you should NOT say?`;
+    return assemble(rng, moduleId, type, prompt, a.misconception!, distractors);
   }
 
   const a = rng.pick(subjAnalogy);
   return assemble(rng, moduleId, type, `Which everyday analogy best fits ${a.term}?`, a.analogy!, bankAnalogies.filter((x) => x !== a).map((x) => x.analogy!));
 }
 
-function makeVocabModule(id: string, title: string, shortTitle: string, description: string, subjects: VocabAtom[], bank: VocabAtom[]): QuestionModule {
-  return { id, title, shortTitle, description, generate: (rng) => generateVocab(rng, id, subjects, bank) };
+/**
+ * Fail loudly on a malformed bank.
+ *
+ * A dangling `contrast.with` is the dangerous case: `generateVocab` filters those atoms out, so
+ * the module quietly loses Distinctions questions instead of erroring. With a bank per course
+ * week that silence is easy to miss, so this runs when the module is built — at import, long
+ * before a class is waiting on it.
+ */
+function validateVocabBank(id: string, bank: VocabAtom[]): void {
+  const terms = new Set(bank.map((a) => a.term));
+  const seen = new Set<string>();
+  const problems: string[] = [];
+  for (const a of bank) {
+    if (seen.has(a.term)) problems.push(`duplicate term ${JSON.stringify(a.term)}`);
+    seen.add(a.term);
+    if (!a.definition) problems.push(`${JSON.stringify(a.term)} has no definition`);
+    if (a.contrast && !terms.has(a.contrast.with)) {
+      problems.push(`${JSON.stringify(a.term)} contrasts with ${JSON.stringify(a.contrast.with)}, which is not in this bank`);
+    }
+  }
+  if (problems.length) {
+    throw new Error(`Vocabulary module "${id}" is malformed:\n  - ${problems.join("\n  - ")}`);
+  }
+}
+
+/** Wrap a bank as a selectable module. `subjects` are asked about; `bank` supplies distractors. */
+export function makeVocabModule(id: string, title: string, shortTitle: string, description: string, subjects: VocabAtom[], bank: VocabAtom[], opts?: VocabOptions): QuestionModule {
+  validateVocabBank(id, bank);
+  return { id, title, shortTitle, description, generate: (rng) => generateVocab(rng, id, subjects, bank, opts) };
 }
 
 /** Build the Beginner + Advanced pair of modules for a domain. */
