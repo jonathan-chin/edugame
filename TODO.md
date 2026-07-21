@@ -25,3 +25,19 @@ Revisit options (not yet decided):
 Touch points: `shared/src/modules/*.ts` (assignment), `reports/src/aggregate.ts` `byDifficulty`
 (consumption), `api/src/session.ts` analytics. The kept-as-is decision and this flag were made
 2026-07-20.
+
+## Interactive dashboard for reports (not yet built)
+
+The report generator produces PDFs only. An interactive dashboard was scoped alongside it but
+deferred. The constraints the human set: **true filtering/interactivity**, must **embed arbitrary
+future media** (not just SVG — PNG/audio/video), and **no hosting** (opens by double-click).
+
+Chosen shape (from that discussion, to build when picked up): a **self-contained bundle** shipped as
+a `.zip` — `index.html` with the JS and the report data inlined as a `<script type="application/json">`
+blob, and media as sibling files referenced by relative path (so `file://` loads images/audio/video
+without base64 bloat, and future media types "just work"). No external/CDN requests, which also keeps
+university AV/proxy filters calm; the PDFs remain the artifact for wide/email distribution.
+
+It reuses the existing aggregation and per-question rendering (the PDF renderer inlines media, the
+dashboard would reference it as sibling files — same components, two media resolvers). Flagged
+2026-07-20.
