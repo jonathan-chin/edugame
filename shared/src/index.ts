@@ -13,8 +13,9 @@ export * from "./recording.js";
 export * from "./profanity.js";
 export * from "./state.js";
 export * from "./ws-protocol.js";
+// The module *registry* is public; individual modules' internals are not. A module's helpers stay
+// private to that module, so the core's public surface never depends on one module's shape.
 export * from "./modules/index.js";
-export * from "./modules/boxplot-common.js";
 
 /** Bumped alongside meaningful changes; written into each session manifest. */
 export const APP_VERSION = "0.5.0";
