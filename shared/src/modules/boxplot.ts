@@ -41,7 +41,7 @@ function generateGraphical(rng: RNG): GeneratedQuestion {
     public: {
       id: rng.id("bpr"),
       moduleId: MODULE_ID,
-      skill: SKILL_GRAPHICAL,
+      skills: [SKILL_GRAPHICAL],
       difficulty: askedKey === "median" || askedKey === "min" || askedKey === "max" ? 2 : 3,
       prompt: svg(boxPlotSvg(fn, BOXPLOT_DOMAIN), `What is the ${FIVE_NUMBER_LABELS[askedKey]} of this data?`),
       answerFormat: "multiple-choice",
@@ -101,7 +101,7 @@ function generateNumerical(rng: RNG): GeneratedQuestion {
     public: {
       id: rng.id("bpi"),
       moduleId: MODULE_ID,
-      skill: SKILL_NUMERICAL,
+      skills: [SKILL_NUMERICAL],
       difficulty: 3,
       prompt: text(`Which box plot has ${prop.label}?`),
       answerFormat: "multiple-choice",

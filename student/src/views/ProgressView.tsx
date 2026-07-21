@@ -100,7 +100,7 @@ function HistoryRow({ item, cached }: { item: StudentHistoryItem; cached?: Cache
           {item.isCorrect ? "✓" : "✗"}
         </span>
         <span className="caption">
-          {item.moduleLabel} · {item.skill}
+          {[item.moduleLabel, ...item.skills].join(" · ")}
         </span>
       </div>
       <div className="history-prompt">

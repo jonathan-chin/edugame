@@ -1447,3 +1447,35 @@ empty pool now returns 200 (was 400) while starting a question with one still re
 showed the previous pool and was nearly reported as a failure — it was racing the in-flight POST.
 The settled read was correct. Worth remembering that a read taken straight after a UI action can
 beat the request it is meant to observe.
+
+### Human — questions can carry zero or more skills
+
+Reviewing the reports, the human noticed a question card renders a single skill and asked to
+refactor so a question can have **0+ skills** (confirming: one and only one module, but any number
+of skills). Until now `skill` was a single string end to end.
+
+**AI implementation (cross-cutting):** `skill: string` became `skills: string[]` on
+`QuestionInstance`, `RecordedQuestion`, `AnswerEventRow`, and `StudentHistoryItem`. The CSV `skill`
+column became `skills`, serialized pipe-joined (`Definitions|Distinctions`) with a `parseSkillsCell`
+helper — and because the report reads columns positionally, pre-refactor CSVs still parse (a lone
+skill becomes a one-element array). Every skill aggregation (api analytics + student progress, and
+the report's by-skill) now iterates each answer's skills, counting once per distinct skill, so a
+two-skill question counts toward both and a skill-less one toward none. Generators emit
+single-element arrays; the model supports more.
+
+**Verified live:** a synthetic two-skill question counted toward both skills (each 1/3) and rendered
+both pills; a zero-skill question produced no skill bucket and no pills. Full monorepo typecheck +
+build green. The example session was regenerated in the new format.
+
+**Consequence surfaced:** per-skill totals can now exceed the answer total (a multi-skill answer is
+counted under each of its skills), so "By skill" describes skill-level performance, not a partition
+of the answers.
+
+### Human — difficulty flagged for a future revisit (TODO.md)
+
+Asked how "By difficulty" is determined, the AI traced it: `difficulty` is a constant hard-coded per
+question *type* in each generator (vocab Definitions→1, Distinctions→3, etc.), not anything measured.
+So for the vocabulary modules it merely restates the skill, making the reports' "By difficulty"
+duplicate "By skill". The human chose to keep the system but flag it. Created `TODO.md` (a new
+short-list of shipped-as-is items, complementary to this narrative log) with the difficulty entry
+and revisit options, plus an inline `TODO(difficulty)` at the `DIFFICULTY` map in `vocab.ts`.

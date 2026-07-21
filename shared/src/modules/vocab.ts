@@ -16,7 +16,7 @@
  * won't make MFA itself the subject of a question. Advanced terms carry the confusable pairs and
  * nuance, so Advanced modules naturally skew toward distinctions and red flags.
  *
- * Four sub-skills (tagged on `skill`): Definitions, Distinctions, Red flags, Analogies.
+ * Four sub-skills (tagged on `skills`): Definitions, Distinctions, Red flags, Analogies.
  *
  * Source material: a technical-recruiter question bank (strong answers → definitions, red flags
  * → misconceptions, "difference between X and Y" → contrasts, examples → analogies).
@@ -116,6 +116,9 @@ const SKILL: Record<QType, string> = {
   redflag: "Red flags",
   analogy: "Analogies",
 };
+// TODO(difficulty): this is a hand-assigned constant per question type, so it just restates the
+// skill — "By difficulty" in the reports ends up duplicating "By skill". Revisit to make it
+// measured (empirical) rather than guessed. See TODO.md.
 const DIFFICULTY: Record<QType, number> = { definition: 1, analogy: 2, redflag: 2, discriminate: 3 };
 
 // Article-free templates so any term (acronym, phrase, hyphenated) reads correctly.
@@ -131,7 +134,7 @@ function assemble(rng: RNG, moduleId: string, type: QType, prompt: string, corre
   const options: AnswerOption[] = items.map((it, i) => ({ id: `o${i}`, content: text(it.t) }));
   const correctOptionId = options[items.findIndex((it) => it.ok)]!.id;
   return {
-    public: { id: rng.id("voc"), moduleId, skill: SKILL[type], difficulty: DIFFICULTY[type], prompt: text(prompt), answerFormat: "multiple-choice", options },
+    public: { id: rng.id("voc"), moduleId, skills: [SKILL[type]], difficulty: DIFFICULTY[type], prompt: text(prompt), answerFormat: "multiple-choice", options },
     key: { format: "multiple-choice", correctOptionId },
   };
 }

@@ -62,7 +62,7 @@ export class SessionWriter {
     return {
       id: q.id,
       moduleId: q.moduleId,
-      skill: q.skill,
+      skills: q.skills,
       difficulty: q.difficulty,
       answerFormat: q.answerFormat,
       prompt: this.externalize(q.prompt, `${base}.prompt`),

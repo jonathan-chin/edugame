@@ -33,7 +33,7 @@ function generateGraphical(rng: RNG): GeneratedQuestion {
     public: {
       id: rng.id("sdg"),
       moduleId: MODULE_ID,
-      skill: SKILL_GRAPHICAL,
+      skills: [SKILL_GRAPHICAL],
       difficulty: dist.family === "normal" ? 2 : 3,
       prompt: svg(densitySvg(dist.pdf, BELL_DOMAIN), "How spread out is this distribution?"),
       answerFormat: "multiple-choice",
@@ -64,7 +64,7 @@ function generateNumerical(rng: RNG): GeneratedQuestion {
     public: {
       id: rng.id("sdn"),
       moduleId: MODULE_ID,
-      skill: SKILL_NUMERICAL,
+      skills: [SKILL_NUMERICAL],
       difficulty: 2,
       prompt: text(`Which distribution has the ${dir} standard deviation?`),
       answerFormat: "multiple-choice",

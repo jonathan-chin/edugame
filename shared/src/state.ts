@@ -65,7 +65,7 @@ export interface StudentHistoryItem {
   moduleId: string;
   /** The module's short title, for display. */
   moduleLabel: string;
-  skill: string;
+  skills: string[];
   difficulty: number;
   isCorrect: boolean;
   myOptionId?: string;

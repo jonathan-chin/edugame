@@ -28,7 +28,7 @@ export type RecordedContent =
 export interface RecordedQuestion {
   id: string;
   moduleId: string;
-  skill: string;
+  skills: string[];
   difficulty: number;
   answerFormat: AnswerFormat;
   prompt: RecordedContent;

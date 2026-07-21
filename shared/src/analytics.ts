@@ -17,7 +17,8 @@ export interface AnswerEventRow {
   studentName: string;
   questionId: string;
   moduleId: string;
-  skill: string;
+  /** The question's sub-skills; serialized pipe-joined in the single `skills` CSV column. */
+  skills: string[];
   difficulty: number;
   submission: string;
   isCorrect: 0 | 1;
@@ -31,11 +32,14 @@ export const ANSWER_CSV_COLUMNS: readonly (keyof AnswerEventRow)[] = [
   "studentName",
   "questionId",
   "moduleId",
-  "skill",
+  "skills",
   "difficulty",
   "submission",
   "isCorrect",
 ];
+
+/** Skills serialize as a pipe-joined string in one column — no comma, so it never needs quoting. */
+export const SKILLS_CSV_SEPARATOR = "|";
 
 function csvEscape(value: unknown): string {
   const s = String(value ?? "");
@@ -47,7 +51,12 @@ export function csvHeaderLine(): string {
 }
 
 export function answerRowToCsv(row: AnswerEventRow): string {
-  return ANSWER_CSV_COLUMNS.map((c) => csvEscape(row[c])).join(",");
+  return ANSWER_CSV_COLUMNS.map((c) => csvEscape(c === "skills" ? row.skills.join(SKILLS_CSV_SEPARATOR) : row[c])).join(",");
+}
+
+/** Parse the pipe-joined `skills` cell back to an array (empty cell → no skills). */
+export function parseSkillsCell(cell: string): string[] {
+  return cell ? cell.split(SKILLS_CSV_SEPARATOR).filter(Boolean) : [];
 }
 
 export interface SessionManifest {

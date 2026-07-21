@@ -26,8 +26,12 @@ export interface QuestionInstance {
   id: string;
   /** The module (topic) this question belongs to — matches the selection modal. */
   moduleId: string;
-  /** Per-question sub-skill within the module, e.g. "Graphical literacy". */
-  skill: string;
+  /**
+   * Sub-skills this question exercises within its module, e.g. ["Graphical literacy"]. A question
+   * may carry several skills, or none; a module usually tags one. Analytics counts an answer once
+   * toward each listed skill, so the per-skill totals can exceed the answer total.
+   */
+  skills: string[];
   /** 1 (easiest) .. 5 (hardest). */
   difficulty: number;
   prompt: Content;

@@ -225,7 +225,7 @@ export class GameSession {
         studentName: student.name,
         questionId: q.id,
         moduleId: q.moduleId,
-        skill: q.skill,
+        skills: q.skills,
         difficulty: q.difficulty,
         submission: submissionToString(submission),
         isCorrect,
@@ -338,19 +338,22 @@ export class GameSession {
       totalAnswers,
       overallAccuracy: totalAnswers ? totalCorrect / totalAnswers : 0,
       students: students.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
-      byModule: this.groupBy((e) => e.moduleId).map((g) => ({ ...g, label: getModule(g.key)?.shortTitle ?? g.label })),
-      bySkill: this.groupBy((e) => e.skill),
+      byModule: this.groupBy((e) => [e.moduleId]).map((g) => ({ ...g, label: getModule(g.key)?.shortTitle ?? g.label })),
+      bySkill: this.groupBy((e) => e.skills),
     };
   }
 
-  private groupBy(keyOf: (e: AnswerEventRow) => string): GroupStat[] {
+  /** Group events by keys drawn from each event; an event contributes once per distinct key it
+   *  carries (so a two-skill question counts toward both skills, a skill-less one toward none). */
+  private groupBy(keysOf: (e: AnswerEventRow) => string[]): GroupStat[] {
     const buckets = new Map<string, { answered: number; correct: number }>();
     for (const e of this.events) {
-      const k = keyOf(e);
-      const b = buckets.get(k) ?? { answered: 0, correct: 0 };
-      b.answered += 1;
-      b.correct += e.isCorrect;
-      buckets.set(k, b);
+      for (const k of new Set(keysOf(e))) {
+        const b = buckets.get(k) ?? { answered: 0, correct: 0 };
+        b.answered += 1;
+        b.correct += e.isCorrect;
+        buckets.set(k, b);
+      }
     }
     return [...buckets.entries()].map(([key, b]) => ({
       key,
@@ -367,14 +370,15 @@ export class GameSession {
     const mine = this.events.filter((e) => e.studentToken === token);
     const correct = mine.reduce((sum, e) => sum + e.isCorrect, 0);
 
-    const group = (keyOf: (e: AnswerEventRow) => string) => {
+    const group = (keysOf: (e: AnswerEventRow) => string[]) => {
       const buckets = new Map<string, { answered: number; correct: number }>();
       for (const e of mine) {
-        const k = keyOf(e);
-        const b = buckets.get(k) ?? { answered: 0, correct: 0 };
-        b.answered += 1;
-        b.correct += e.isCorrect;
-        buckets.set(k, b);
+        for (const k of new Set(keysOf(e))) {
+          const b = buckets.get(k) ?? { answered: 0, correct: 0 };
+          b.answered += 1;
+          b.correct += e.isCorrect;
+          buckets.set(k, b);
+        }
       }
       return [...buckets.entries()].map(([label, b]) => ({
         label,
@@ -390,8 +394,8 @@ export class GameSession {
       answered: mine.length,
       correct,
       accuracy: mine.length ? correct / mine.length : 0,
-      byModule: group((e) => e.moduleId).map((g) => ({ ...g, label: getModule(g.label)?.shortTitle ?? g.label })),
-      bySkill: group((e) => e.skill),
+      byModule: group((e) => [e.moduleId]).map((g) => ({ ...g, label: getModule(g.label)?.shortTitle ?? g.label })),
+      bySkill: group((e) => e.skills),
       history: this.historyFor(mine),
     };
   }
@@ -417,7 +421,7 @@ export class GameSession {
         at: e.timestamp,
         moduleId: e.moduleId,
         moduleLabel: getModule(e.moduleId)?.shortTitle ?? e.moduleId,
-        skill: e.skill,
+        skills: e.skills,
         difficulty: e.difficulty,
         isCorrect: e.isCorrect === 1,
         myOptionId: e.submission,
