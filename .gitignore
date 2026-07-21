@@ -15,6 +15,9 @@ sessions/
 .env
 .env.local
 
+# Generated reports — contain student names (PII); never commit
+reports/out/
+
 # OS / editor
 .DS_Store
 

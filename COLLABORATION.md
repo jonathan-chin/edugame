@@ -1479,3 +1479,47 @@ So for the vocabulary modules it merely restates the skill, making the reports' 
 duplicate "By skill". The human chose to keep the system but flag it. Created `TODO.md` (a new
 short-list of shipped-as-is items, complementary to this narrative log) with the difficulty entry
 and revisit options, plus an inline `TODO(difficulty)` at the `DIFFICULTY` map in `vocab.ts`.
+
+### Human — a report generation system (CLI + PDFs)
+
+The human asked for a command-line, Node-based report generator in the monorepo: read the recorded
+`sessions/`, and produce **PDF** summaries — a whole-class report plus one per student — most
+aggregated first, drilling down to individual questions recreated from the meta sidecar. PDFs are
+gitignored so student names (PII) never reach git. Several open questions were worked through before
+building; the decisions:
+
+- **Filenames:** `YYYY-MM-DDTHHMM_YYYY-MM-DDTHHMM_studentName.pdf` (ISO-shaped, no illegal colon);
+  the second datetime is dropped for a single session, the name for the class report.
+- **Nicknames:** one sidecar per session (`<id>.names.json`), auto-generated identity-by-default
+  (title-cased), human-editable. Per-session files sidestep the "same nickname, two students,
+  different sessions" collision without any token plumbing.
+- **Media:** SVG-only for now, inlined; the media path is abstracted so PNG/audio/video is additive.
+- **Dashboard:** deferred (a self-contained bundle was scoped but not built).
+- **PDF engine:** Puppeteer, rendering one HTML layout, with a **system-Chrome fallback** — the
+  bundled-Chromium download is exactly what a locked-down (e.g. university) network blocks, and the
+  fallback renders off installed Chrome.
+
+**AI implementation:** a new `@edugame/reports` workspace (`yarn report`) — session scanner/parser
+(CSV + manifest + assets), per-session name maps, aggregation (class + per-student, by
+module/skill/difficulty, per-question), HTML render, Puppeteer PDF. Output goes to the gitignored
+`reports/out/<range>/`, one folder per run; a re-run clears its folder first so a stale per-student
+PDF can't linger after a nickname edit changes the roster.
+
+Refinements the human drove, each verified against a generated 16-student example session:
+- Accuracy is **correct / answered** — unanswered questions are excluded, not counted wrong; a
+  separate "Questions answered — X / total" tile carries participation (late arrival / early exit).
+- Green/yellow/red status at 80/60 thresholds: keyed off the *displayed* rounded percentage so a
+  square never contradicts its number; used as roster/tile swatches and as the bar-fill colour on
+  the breakdowns.
+- The confusing "vs class" tile became a **Class standing** histogram: the class's accuracy
+  distribution with the student marked and their z-score ("+1.2σ above the class mean").
+- Per-question meta: accuracy left, module pill then skill pill(s) at the right; chart-option
+  questions render the actual charts instead of option ids.
+- Each breakdown is a 1/3–2/3 row: a RAG **pie** of its rows on the left, the bars (or roster) on
+  the right; the class report gains a students pie before the roster.
+- Header shows the report's date range (once for a single session); dropped the sessions/answers
+  counts and the redundant answered/correct columns.
+
+Full monorepo typecheck + build green; the whole pipeline verified end-to-end (aggregation, name
+merging across sessions, question recreation incl. SVG, filenames, PDF rendering) against realistic
+fixtures written with the game's own SessionWriter.

@@ -9,7 +9,8 @@
     "shared",
     "api",
     "student",
-    "educator"
+    "educator",
+    "reports"
   ],
   "scripts": {
     "build:shared": "yarn workspace @edugame/shared build",
@@ -18,6 +19,7 @@
     "build": "yarn build:shared && yarn build:student && yarn build:educator",
     "start": "node scripts/orchestrate.mjs",
     "dev": "node scripts/orchestrate.mjs",
+    "report": "yarn workspace @edugame/reports report",
     "typecheck": "yarn workspaces foreach -A run typecheck"
   },
   "dependencies": {
