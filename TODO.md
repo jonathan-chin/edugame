@@ -26,6 +26,42 @@ Touch points: `shared/src/modules/*.ts` (assignment), `reports/src/aggregate.ts`
 (consumption), `api/src/session.ts` analytics. The kept-as-is decision and this flag were made
 2026-07-20.
 
+## Question modules should become a real plugin ecosystem
+
+Goal: modules are isolated plugins; the core engine only ever queries a module for a question.
+
+**Already true:** the engine knows nothing about archetypes. `api/src/*` contains no reference to
+any module id or archetype, `drawQuestion` is just `getModule(id).generate(rng)`, and skills /
+difficulty are module-authored values the engine passes through untouched. Neither client
+references a specific module either.
+
+**What actually blocks it** (verified 2026-07-21):
+
+1. **Answer formats are a closed union and grading lives in the core.** `AnswerKey` / `Submission`
+   are two-member unions, and the engine switches on `format` in three places: `grade()`
+   (`api/src/session.ts`), building `RevealInfo`, and the student history. A module wanting
+   ordering, matching, multi-select or short-text answers **cannot be written without editing
+   core**. This is the real blocker.
+2. **The registry is a hand-maintained switchboard** — `shared/src/modules/index.ts` imports each
+   module and builds the array, so adding a module means editing the core package.
+3. **Modules live inside `shared/`** — no physical boundary between engine and plugin.
+
+**Planned phases:**
+- *Phase 1 — tighten the contract.* Collapse the registry to a single explicit manifest that is the
+  only place listing modules. (The stale `boxplot-common` re-export from the core barrel was
+  already removed.)
+- *Phase 2 — move grading and reveal into the module (the unlock).* Extend `QuestionModule` with
+  `grade(key, submission)` and `reveal(key)`; the engine calls those instead of switching on
+  format, and `AnswerKey` becomes opaque to core. Ship a `multipleChoice()` helper so existing
+  modules stay one-liners. After this a new answer type is purely a module concern.
+- *Phase 3 — physical boundary.* Extract a slim `@edugame/module-api` (Content, RNG,
+  QuestionInstance, AnswerKey contract) and move `modules/` to their own workspace depending only
+  on it. Core never imports a module; the app composes them.
+
+**Constraint to remember:** this code ships to browsers, so there is no filesystem discovery or
+runtime plugin loading. "Plugin" here means a clean contract plus one registration point — Phases
+1–2 achieve that; Phase 3 makes the boundary enforceable.
+
 ## Interactive dashboard for reports (not yet built)
 
 The report generator produces PDFs only. An interactive dashboard was scoped alongside it but

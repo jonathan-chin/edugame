@@ -1523,3 +1523,30 @@ Refinements the human drove, each verified against a generated 16-student exampl
 Full monorepo typecheck + build green; the whole pipeline verified end-to-end (aggregation, name
 merging across sessions, question recreation incl. SVG, filenames, PDF rendering) against realistic
 fixtures written with the game's own SessionWriter.
+
+### Human — plugin ecosystem: assessed, deferred, and one leak cleaned
+
+The human's goal: question modules as isolated plugins, with the core engine knowing nothing about
+specific archetypes and merely querying a module for a question.
+
+**AI finding — the premise was already half true.** The engine does not know about archetypes:
+`api/src/*` contains no reference to any module id or archetype name, `drawQuestion` is just
+`getModule(id).generate(rng)`, and skills/difficulty are module-authored values passed through
+untouched. Neither client references a specific module either.
+
+**What actually blocks a plugin system**, which is a different problem than the one assumed:
+`AnswerKey`/`Submission` are closed two-member unions and grading lives in the core, switched on
+`format` in three places (`grade()`, building `RevealInfo`, and the student history). So a module
+wanting ordering, matching, multi-select or short-text answers cannot be written without editing
+core. Secondary: the registry is a hand-maintained switchboard, and modules live inside `shared/`.
+
+The human chose to **pause** the refactor and record it. Added a TODO.md section with the finding,
+the three real blockers, a three-phase plan (tighten the contract → move grading/reveal into the
+module → extract a `@edugame/module-api` and relocate modules), and the constraint that this code
+ships to browsers, so "plugin" means a clean contract plus one registration point rather than
+runtime loading.
+
+**Shipped alongside:** the one cleanup with no side effects — `shared/src/index.ts` re-exported
+`modules/boxplot-common.js`, leaking a single module's helpers into the core's public API. Verified
+all four symbols are used only by `boxplot.ts` (which imports the file directly, not via the
+barrel), removed the re-export, and confirmed a clean typecheck and build across every workspace.
