@@ -13,12 +13,11 @@ implementation (AI) verbatim.
 ## What makes it different
 
 - **Infinite questions.** Questions come from pluggable *modules* that generate fresh
-  question/answer objects on the fly — never a fixed list. Ten ship today: two **statistics**
-  modules (standard deviation, box-and-whisker, with graphical/numerical sub-skills) and eight
+  question/answer objects on the fly — never a fixed list. Seventeen ship today: two **statistics**
+  modules (standard deviation, box-and-whisker, with graphical/numerical sub-skills), eight
   **tech-interview vocabulary** modules — developer, QA, IT, and security, each split into
-  Beginner and Advanced — that assemble jargon questions from a bank of fact-atoms (definitions,
-  distinctions, red flags, analogies). Adding a module is a one-line registry change plus a
-  generator.
+  Beginner and Advanced — and seven **course-week vocabulary** modules built from a lecture series'
+  own slides. See [Question modules](#question-modules-the-plugin-ecosystem).
 - **No database.** Analytics stream to a flat CSV; questions are generated in memory.
 - **Reproducible.** A single RNG seed regenerates an entire session's questions. Pass it
   on the command line (or let a UUID be assigned) — it's recorded in the manifest.
@@ -36,17 +35,21 @@ implementation (AI) verbatim.
 
 ## Architecture
 
-A Yarn-workspaces monorepo with four packages:
+A Yarn-workspaces monorepo. The first three packages exist to keep question modules at arm's
+length from the engine:
 
 | Package | Role |
 | --- | --- |
-| [`shared/`](shared) | The typed contract: question-module interface, content model, analytics/CSV shapes, seeded RNG, content checks, WebSocket protocol. Imported by everything. |
+| [`module-api/`](module-api) | **The contract** a question module implements: content model, seeded RNG, question/answer types, the `QuestionModule` interface, the registry factory. Depends on nothing. |
+| [`modules/`](modules) | **The plugins** — the stock question modules, plus their private chart/statistics helpers. Depends only on the contract. See [`modules/README.md`](modules/README.md). |
+| [`shared/`](shared) | Game-level types both servers and clients agree on: live state, WebSocket protocol, analytics/CSV shapes, session recording, name checks. Re-exports the contract; names no module. |
 | [`api/`](api) | Express. Two HTTP servers sharing one in-memory session: a **student** server (bound `0.0.0.0`, tunneled — serves the student bundle + student API) and an **educator** server (bound `127.0.0.1` — control + analytics). WebSockets push live state. |
 | [`student/`](student) | Ionic React app: join by name, answer, personal progress. Served by the API (same-origin → no ngrok URL baked in). |
 | [`educator/`](educator) | Ionic React app (localhost): flow control, live analytics (Recharts), drag-to-anonymize toggle, and a projector view (question + join QR for the class). |
+| [`reports/`](reports) | Command-line report generator: turns recorded sessions into per-student and whole-class **PDF** summaries. |
 
-**Question graphics are server-rendered SVG.** Modules build the SVG in `shared/` (see
-`distributions.ts` + `svg.ts`) and ship the finished markup in the question `Content`;
+**Question graphics are server-rendered SVG.** Modules build the SVG themselves (see
+`modules/src/svg.ts` + `distributions.ts`) and ship the finished markup in the question `Content`;
 clients just inject it inline (theming survives via CSS variables). This keeps the student
 app free of any charting library and lets a new module invent any visual without client
 changes. Recharts is used only for the educator's analytics dashboards.
@@ -59,6 +62,40 @@ Recharts (educator analytics only), `ws`, and `@ngrok/ngrok`.
 The student bundle is served **by the API itself**, so the app is same-origin with its
 API and simply calls `window.location.origin`. Nothing needs the ngrok URL baked in. The
 educator's projector view renders a QR of the public origin for the class to scan.
+
+## Question modules (the plugin ecosystem)
+
+A module is a self-contained plugin. It generates questions, grades them, and says what to reveal —
+and **the engine knows nothing about any of it**. `GameSession` is handed a registry rather than
+importing one, so the core has no opinion about which modules exist:
+
+```ts
+import { createRegistry } from "@edugame/module-api";
+const registry = createRegistry([myModule]);
+new GameSession(id, seed, registry);
+```
+
+The whole contract is one object:
+
+```ts
+export const myModule: QuestionModule = {
+  id, title, shortTitle, description,
+  generate(rng) { /* → { public, key } */ },
+  grade(key, submission) { /* correctness is yours */ },
+  reveal(key) { /* what clients highlight */ },
+};
+```
+
+Because `grade` and `reveal` belong to the module, the engine never inspects an answer key — a
+module can define correctness however it likes without a core change. Two constraints are worth
+knowing up front: **all randomness must come from the injected `rng`** (a session replays from its
+seed), and every question is **multiple-choice** for now, since a browser client can only collect
+an interaction it has a widget for.
+
+**Start from [`modules/src/template.ts`](modules/src/template.ts)** — a complete, working, commented
+module, compiled and type-checked with the package but deliberately left out of the manifest so it
+never appears in the picker. [`modules/README.md`](modules/README.md) has the full guide: the rules
+that matter, how to register, and what to assert when checking your own module.
 
 ## Running it
 
@@ -75,7 +112,7 @@ yarn start --skip-build    # reuse existing bundles (faster relaunch)
 
 `yarn start` will:
 
-1. Build `shared` + both client bundles.
+1. Build `module-api`, `shared`, `modules` + both client bundles.
 2. Start the API — student server on **:4000** (tunneled), educator server on **:4100**
    (localhost only). If either port is already in use, the launcher automatically advances to
    the next free one and prints the port it settled on.
@@ -91,7 +128,8 @@ question for reference.
 Per session, written to `sessions/`:
 
 - `<session>.csv` — one row per graded answer (`timestamp, session, studentToken,
-  studentName, questionId, moduleId, skill, difficulty, submission, isCorrect`).
+  studentName, questionId, moduleId, skills, difficulty, submission, isCorrect`). A question may
+  carry several skills, so that column is pipe-joined (`Definitions|Distinctions`).
 - `<session>.meta.json` — session manifest: the **seed**, timings, modules used, and a
   `questions[]` record of every revealed question — prompt/option text, the **correct answer**,
   and (for graphics) a `path` to a sidecar SVG. Captured at reveal time, so a session is
@@ -99,14 +137,21 @@ Per session, written to `sessions/`:
 - `<session>/` — sidecar asset files (the server-rendered SVGs) referenced by the manifest;
   text and answers stay inline, only graphics are externalized to keep the JSON lean.
 
+`yarn report` turns any date range of those sessions into PDF summaries — one for the class and one
+per student, each recreating the questions asked. Reports and `sessions/` are gitignored, since they
+carry student names.
+
 ## Development
 
 ```bash
+yarn workspace @edugame/module-api dev  # tsc --watch (the contract)
+yarn workspace @edugame/modules dev     # tsc --watch (the question modules)
 yarn workspace @edugame/shared dev      # tsc --watch
 yarn workspace @edugame/api dev         # tsx watch (STUDENT_DIST/EDUCATOR_DIST optional)
 yarn workspace @edugame/student dev     # Vite dev server (proxies /api + /ws to :4000)
 yarn workspace @edugame/educator dev    # Vite dev server (proxies to :4100)
 yarn typecheck                          # typecheck all workspaces
+yarn report                             # generate PDF reports from recorded sessions
 ```
 
 ## Known limitations (by design or noted)

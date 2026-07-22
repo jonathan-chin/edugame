@@ -1658,3 +1658,33 @@ resolution, and the report generator produced its usual figures.
 **Caveat recorded:** the boundary is declared rather than hard-enforced, since the `node-modules`
 linker hoists and would let an undeclared import resolve. Plug'n'Play or a lint rule would make the
 resolver enforce it.
+
+### Human — a template module and the developer documentation
+
+With the three-package split done, the human asked for a template module other developers could
+follow, and then for the main README to describe the plugin ecosystem and point at the details.
+
+**AI implementation:** `modules/src/template.ts` is a complete, working module ("which of these is a
+power of two"), compiled and type-checked with the package so it cannot silently rot, but
+deliberately left out of the manifest so it never reaches the educator's picker. It demonstrates the
+things that are easy to get wrong rather than the happy path: all randomness through the injected
+`rng` (with the reason — `Math.random()` breaks session replay), distractors built as near-misses
+with an explicit check rejecting any that is *also* a power of two, `rng.shuffle` instead of sorting
+so option order is reproducible, and a commented sketch of the custom `grade`/`reveal` path.
+
+`modules/README.md` is the guide: the object shape, registering via the manifest or a bespoke
+registry, the four rules that matter (seeded RNG, never a second correct answer, permanent ids,
+shared skill vocabulary), the package-boundary table, and what to assert when checking a new module.
+
+**The main README turned out to be stale in five ways** beyond the missing plugin story, all fixed
+while there: it claimed four packages (now seven), ten modules (now seventeen), that modules build
+SVG in `shared/` (that code moved with them), and listed the CSV's `skill` column (now `skills`,
+pipe-joined); the build and dev commands omitted the new workspaces. The report generator was also
+never mentioned, so `yarn report` now gets a line, along with the note that reports and `sessions/`
+are gitignored because they carry student names.
+
+**Verified:** every code sample in the README checked against the real signatures
+(`createRegistry`, `GameSession(id, seed, registry)`, `grade(key, submission)`, `reveal(key)`),
+every relative link resolves, and the template itself was run — 500 generated questions with no
+defects (four distinct options, exactly one power of two, grading right and wrong picks correctly)
+and the same seed twice producing an identical question.
