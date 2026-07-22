@@ -121,6 +121,72 @@ const SKILL: Record<QType, string> = {
 // measured (empirical) rather than guessed. See TODO.md.
 const DIFFICULTY: Record<QType, number> = { definition: 1, analogy: 2, redflag: 2, discriminate: 3 };
 
+/**
+ * Words too common to say anything about what a definition is *about*. Kept small on purpose —
+ * this only has to stop "the/of/that" from making two unrelated definitions look alike.
+ */
+const STOPWORDS = new Set(
+  ("a an the of to and or in on for that this with is are be as it its you your from by not no than" +
+    " then so which what when where who into onto over under out up down at if they them their can").split(" "),
+);
+
+/** The content words of a definition — what it is actually about. */
+function contentWords(s: string): Set<string> {
+  return new Set(
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !STOPWORDS.has(w)),
+  );
+}
+
+/**
+ * How alike two definitions read, 0..1: mostly shared content words, nudged by similar length so a
+ * conspicuously short or long option doesn't stand out on shape alone.
+ */
+function similarity(a: string, b: string): number {
+  const A = contentWords(a);
+  const B = contentWords(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let shared = 0;
+  for (const w of A) if (B.has(w)) shared++;
+  const jaccard = shared / (A.size + B.size - shared);
+  const lengthAffinity = Math.min(a.length, b.length) / Math.max(a.length, b.length);
+  return jaccard * 0.8 + lengthAffinity * 0.2;
+}
+
+/** How many near neighbours to draw the random distractors from. */
+const DISTRACTOR_SHORTLIST = 6;
+
+/**
+ * Distractors a student cannot dismiss by reading alone.
+ *
+ * Drawing uniformly from the bank tends to offer definitions about visibly unrelated topics — a
+ * question about `ngrok` sitting beside three definitions of SQL joins is answerable by
+ * elimination, testing critical reading rather than the term. Instead: the subject's own contrast
+ * partner first (the bank already marks that pair as the one people confuse, so it is the most
+ * believable wrong answer available), then the nearest neighbours by wording. The remainder is
+ * drawn from a shortlist rather than the single closest so repeat draws of a term still vary.
+ */
+function believableDistractors(rng: RNG, subject: VocabAtom, bankDefs: VocabAtom[], byTerm: Map<string, VocabAtom>): string[] {
+  const pool = bankDefs.filter((x) => x !== subject);
+  const chosen: VocabAtom[] = [];
+
+  const partner = subject.contrast ? byTerm.get(subject.contrast.with) : undefined;
+  if (partner && pool.includes(partner)) chosen.push(partner);
+
+  const ranked = pool
+    .filter((x) => !chosen.includes(x))
+    .map((x) => ({ atom: x, score: similarity(subject.definition, x.definition) }))
+    .sort((p, q) => q.score - p.score)
+    .map((r) => r.atom);
+
+  const shortlist = ranked.slice(0, Math.max(3, Math.min(ranked.length, DISTRACTOR_SHORTLIST)));
+  chosen.push(...rng.shuffle(shortlist).slice(0, 3 - chosen.length));
+  return chosen.map((x) => x.definition);
+}
+
 // Article-free templates so any term (acronym, phrase, hyphenated) reads correctly.
 const DEFINITION_TEMPLATES: ((t: string) => string)[] = [
   (t) => `What does ${t} mean?`,
@@ -175,7 +241,7 @@ function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: 
   if (type === "definition") {
     const a = rng.pick(subjDef);
     const prompt = rng.pick(DEFINITION_TEMPLATES)(a.term);
-    return assemble(rng, moduleId, type, prompt, a.definition, bankDefs.filter((x) => x !== a).map((x) => x.definition));
+    return assemble(rng, moduleId, type, prompt, a.definition, believableDistractors(rng, a, bankDefs, byTerm));
   }
 
   if (type === "discriminate") {
