@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import http from "node:http";
 import { loadConfig } from "./config.js";
 import { createEducatorApp } from "./educator-app.js";
+import { defaultRegistry } from "@edugame/shared";
 import { GameService, type SessionBundle } from "./game-service.js";
 import { Hub } from "./hub.js";
 import { SessionWriter } from "./csv-writer.js";
@@ -29,7 +30,7 @@ function newSession(): SessionBundle {
   const seed = firstSession ? config.seed : randomUUID();
   firstSession = false;
   return {
-    session: new GameSession(sessionId, seed),
+    session: new GameSession(sessionId, seed, defaultRegistry),
     writer: new SessionWriter(config.sessionsDir, sessionId),
   };
 }
@@ -37,7 +38,7 @@ function newSession(): SessionBundle {
 const service = new GameService(newSession);
 
 const studentServer = http.createServer(createStudentApp(service, config.studentDist));
-const educatorServer = http.createServer(createEducatorApp(service, config.educatorDist));
+const educatorServer = http.createServer(createEducatorApp(service, config.educatorDist, defaultRegistry));
 
 const studentHub = new Hub(studentServer, () => service.helloStudent(), service.markSeen);
 const educatorHub = new Hub(educatorServer, () => service.helloEducator());

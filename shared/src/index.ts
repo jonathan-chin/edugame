@@ -5,6 +5,7 @@
 export * from "./rng.js";
 export * from "./content.js";
 export * from "./question.js";
+export * from "./registry.js";
 export * from "./stats.js";
 export * from "./distributions.js";
 export * from "./svg.js";

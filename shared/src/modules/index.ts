@@ -1,12 +1,15 @@
 /**
- * The module registry.
+ * The module manifest: the single place that names which question modules exist.
  *
- * A module is a selectable topic (what appears in the educator's module modal). Each
- * module may generate several sub-skill variants internally, tagged on the question's
- * `skill`. Adding a module is a one-line change here.
+ * This is a composition detail, not engine logic. The engine never imports this file — it is
+ * handed a `ModuleRegistry` (see `../registry.ts`) built from whatever list an application
+ * chooses, so adding or removing a module touches only this manifest.
+ *
+ * `defaultRegistry` is the stock set used by the game and the report generator.
  */
 
 import type { QuestionModule } from "../question.js";
+import { createRegistry, type ModuleRegistry } from "../registry.js";
 import { boxplotModule } from "./boxplot.js";
 import { COURSE_VOCAB_MODULES } from "./course-vocab.js";
 import { stdevModule } from "./stdev.js";
@@ -19,27 +22,7 @@ export const MODULES: readonly QuestionModule[] = [
   ...COURSE_VOCAB_MODULES,
 ];
 
-const BY_ID = new Map<string, QuestionModule>(MODULES.map((m) => [m.id, m]));
-
-export function getModule(id: string): QuestionModule | undefined {
-  return BY_ID.get(id);
-}
-
-/** Lightweight descriptor for the educator's module picker. */
-export interface ModuleInfo {
-  id: string;
-  title: string;
-  shortTitle: string;
-  description: string;
-}
-
-export function moduleCatalog(): ModuleInfo[] {
-  return MODULES.map(({ id, title, shortTitle, description }) => ({
-    id,
-    title,
-    shortTitle,
-    description,
-  }));
-}
+/** The stock registry. Applications may build their own from a different list. */
+export const defaultRegistry: ModuleRegistry = createRegistry(MODULES);
 
 export { stdevModule, boxplotModule, VOCAB_MODULES, COURSE_VOCAB_MODULES };

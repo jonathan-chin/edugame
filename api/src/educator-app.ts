@@ -6,14 +6,14 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { moduleCatalog } from "@edugame/shared";
+import type { ModuleRegistry } from "@edugame/shared";
 import cors from "cors";
 import express, { type Express } from "express";
 import QRCode from "qrcode";
 import type { GameService } from "./game-service.js";
 import { errorHandler } from "./http-helpers.js";
 
-export function createEducatorApp(service: GameService, educatorDist: string | null = null): Express {
+export function createEducatorApp(service: GameService, educatorDist: string | null = null, registry: ModuleRegistry): Express {
   const app = express();
   app.use(cors());
   app.use(express.json());
@@ -24,7 +24,7 @@ export function createEducatorApp(service: GameService, educatorDist: string | n
 
   api.get("/state", (_req, res) => res.json(service.state()));
 
-  api.get("/modules", (_req, res) => res.json(moduleCatalog()));
+  api.get("/modules", (_req, res) => res.json(registry.catalog()));
 
   api.get("/pool", (_req, res) => res.json({ moduleIds: service.session.getModulePool() }));
 

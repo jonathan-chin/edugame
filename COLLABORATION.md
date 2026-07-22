@@ -1577,3 +1577,29 @@ through the module. Full typecheck and build clean; 62 lines changed.
 **What it bought:** a module can now invent and grade its own key shape without touching core.
 `AnswerKey` is still a closed union, but nothing switches on it, so widening it is a pure type
 change with no call-site churn.
+
+### Human — plugin migration, phase 1: the engine is handed its registry
+
+Continuing the staged migration, the switchboard went next. `shared/src/modules/index.ts` used to
+import every module, build the array, and export a global `getModule` that the engine reached for
+directly — so the core package had to be edited to add a module.
+
+**AI implementation:** a new `shared/src/registry.ts` holds the lookup contract (`ModuleRegistry`,
+`ModuleInfo`) and a `createRegistry` factory, and deliberately imports no modules at all.
+`modules/index.ts` is now just a manifest naming the stock list and exporting `defaultRegistry`.
+`GameSession` takes a `ModuleRegistry` in its constructor; all nine former `getModule` lookups go
+through it. The applications compose: `api/src/main.ts` for the game (also passing the registry to
+the educator app, which serves the picker catalog from it) and `reports/src/aggregate.ts` for the
+report generator. `createRegistry` rejects duplicate ids.
+
+**Verified by actually using it as a plugin system:** built a module with its *own* key shape, its
+own `grade` and its own `reveal` — a term the core has never heard of — composed a `GameSession`
+from a registry containing only that module, and played a question through it. It graded correctly
+and produced its own reveal payload, while the stock registry (17 modules) had no knowledge of it.
+Then a live regression on the real game: catalog served from the injected registry, a question
+drawn, answered, revealed, and both the history's `correctOptionId` and the analytics module label
+resolved through the registry. Typecheck and build clean.
+
+**Honest limit:** the third-party key needed a cast, because `AnswerKey` is still the closed union.
+Widening it is the remaining scrap of phase 2 and is now a pure type change — nothing switches on
+it any more.

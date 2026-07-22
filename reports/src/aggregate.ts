@@ -6,7 +6,8 @@
  * (a single student's answer to a single recreated question), matching how the reports read.
  */
 
-import { getModule, type RecordedQuestion } from "@edugame/shared";
+// The report generator is its own application, so it composes the stock module list itself.
+import { defaultRegistry, type RecordedQuestion } from "@edugame/shared";
 import { recordedText } from "./content.js";
 import { canonical, loadOrCreateNameMap, type NameMap } from "./names.js";
 import type { LoadedSession } from "./sessions.js";
@@ -104,7 +105,7 @@ interface Answer {
   question: RecordedQuestion | null;
 }
 
-const moduleLabel = (id: string) => getModule(id)?.shortTitle ?? id;
+const moduleLabel = (id: string) => defaultRegistry.get(id)?.shortTitle ?? id;
 
 function acc(answered: number, correct: number): number {
   return answered > 0 ? correct / answered : 0;
@@ -138,7 +139,7 @@ function optionLabel(q: RecordedQuestion | null, optionId: string): string | nul
 /** Ask the owning module to read its own key, rather than assuming an answer shape here. */
 function correctOptionId(q: RecordedQuestion | null): string | null {
   if (!q) return null;
-  return getModule(q.moduleId)?.reveal(q.correct).correctOptionId ?? null;
+  return defaultRegistry.get(q.moduleId)?.reveal(q.correct).correctOptionId ?? null;
 }
 
 export function buildModel(sessions: LoadedSession[], sessionsDir: string): ReportModel {

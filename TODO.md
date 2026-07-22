@@ -43,14 +43,17 @@ references a specific module either.
    reports tool) now asks the owning module. `gradeStandardAnswer` / `revealStandardAnswer` are
    opt-in helpers modules wire in. `AnswerKey` is still a closed union, but nothing switches on it
    any more, so widening it is a pure type change with no call-site churn.
-2. **The registry is a hand-maintained switchboard** — `shared/src/modules/index.ts` imports each
-   module and builds the array, so adding a module means editing the core package.
+2. ~~**The registry is a hand-maintained switchboard**~~ **Done.** `GameSession` now takes a
+   `ModuleRegistry` in its constructor instead of importing a global lookup, and
+   `shared/src/modules/index.ts` is a manifest whose only job is naming the stock list. An
+   application composes the registry (`api/src/main.ts`, `reports/src/aggregate.ts`); the engine
+   has no opinion about which modules exist.
 3. **Modules live inside `shared/`** — no physical boundary between engine and plugin.
 
 **Planned phases:**
-- *Phase 1 — tighten the contract.* Collapse the registry to a single explicit manifest that is the
-  only place listing modules. (The stale `boxplot-common` re-export from the core barrel was
-  already removed.)
+- *Phase 1 — tighten the contract.* **Done.** `registry.ts` holds the lookup contract and a
+  `createRegistry` factory and imports no modules; `modules/index.ts` is the manifest. Verified by
+  composing a session from a registry containing only a third-party module.
 - *Phase 2 — move grading and reveal into the module (the unlock).* **Done.** What remains of it:
   widen `AnswerKey` from the closed union to an opaque per-module type, now that no call site
   switches on it.

@@ -15,7 +15,7 @@ import {
   type AnswerKey,
   createRng,
   type GeneratedQuestion,
-  getModule,
+  type ModuleRegistry,
   type GroupStat,
   type Phase,
   type PublicGameState,
@@ -91,7 +91,11 @@ export class GameSession {
   /** A record of every question revealed to the class, embedded in the manifest. */
   private readonly recordedQuestions: RecordedQuestion[] = [];
 
-  constructor(sessionId: string, seed: string) {
+  /**
+   * @param registry where questions come from. Injected rather than imported so the engine has no
+   *        opinion about which modules exist — an application composes that list.
+   */
+  constructor(sessionId: string, seed: string, private readonly registry: ModuleRegistry) {
     this.sessionId = sessionId;
     this.seed = seed;
     this.rng = createRng(seed);
@@ -137,7 +141,7 @@ export class GameSession {
     // module there is nothing to draw, so the game can't start.
     const id = moduleId ?? (this.modulePool.length ? this.rng.pick(this.modulePool) : null);
     if (!id) throw new HttpError(409, "Select at least one module before starting.");
-    const module = getModule(id);
+    const module = this.registry.get(id);
     if (!module) throw new HttpError(400, `Unknown module: ${id}`);
 
     this.activeModuleId = id;
@@ -178,7 +182,7 @@ export class GameSession {
    * real guard, mirrored by the disabled "Start game" button.
    */
   setModulePool(ids: string[]): void {
-    this.modulePool = ids.filter((id) => getModule(id));
+    this.modulePool = ids.filter((id) => this.registry.get(id));
   }
 
   getModulePool(): string[] {
@@ -211,7 +215,7 @@ export class GameSession {
     const key = this.current.key;
     const q = this.current.public;
     // Only the module that produced this key knows how to grade against it.
-    const module = getModule(q.moduleId);
+    const module = this.registry.get(q.moduleId);
     if (!module) throw new HttpError(400, `Unknown module: ${q.moduleId}`);
     const now = new Date().toISOString();
     const rows: AnswerEventRow[] = [];
@@ -240,7 +244,7 @@ export class GameSession {
 
   /** The engine supplies the questionId; only the module knows how to read its own key. */
   private revealInfo(moduleId: string, key: AnswerKey, questionId: string): RevealInfo {
-    const module = getModule(moduleId);
+    const module = this.registry.get(moduleId);
     return { questionId, ...(module ? module.reveal(key) : {}) };
   }
 
@@ -339,7 +343,7 @@ export class GameSession {
       totalAnswers,
       overallAccuracy: totalAnswers ? totalCorrect / totalAnswers : 0,
       students: students.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
-      byModule: this.groupBy((e) => [e.moduleId]).map((g) => ({ ...g, label: getModule(g.key)?.shortTitle ?? g.label })),
+      byModule: this.groupBy((e) => [e.moduleId]).map((g) => ({ ...g, label: this.registry.get(g.key)?.shortTitle ?? g.label })),
       bySkill: this.groupBy((e) => e.skills),
     };
   }
@@ -395,7 +399,7 @@ export class GameSession {
       answered: mine.length,
       correct,
       accuracy: mine.length ? correct / mine.length : 0,
-      byModule: group((e) => [e.moduleId]).map((g) => ({ ...g, label: getModule(g.label)?.shortTitle ?? g.label })),
+      byModule: group((e) => [e.moduleId]).map((g) => ({ ...g, label: this.registry.get(g.label)?.shortTitle ?? g.label })),
       bySkill: group((e) => e.skills),
       history: this.historyFor(mine),
     };
@@ -410,7 +414,7 @@ export class GameSession {
     const byId = new Map(this.recordedQuestions.map((q) => [q.id, q] as const));
     return [...mine].reverse().map((e) => {
       const recorded = byId.get(e.questionId);
-      const correctOptionId = recorded ? getModule(recorded.moduleId)?.reveal(recorded.correct).correctOptionId : undefined;
+      const correctOptionId = recorded ? this.registry.get(recorded.moduleId)?.reveal(recorded.correct).correctOptionId : undefined;
       const options = (recorded?.options ?? []).map((o, i) => ({
         id: o.id,
         text: contentText(o.content) ?? `Option ${i + 1}`,
@@ -420,7 +424,7 @@ export class GameSession {
         questionId: e.questionId,
         at: e.timestamp,
         moduleId: e.moduleId,
-        moduleLabel: getModule(e.moduleId)?.shortTitle ?? e.moduleId,
+        moduleLabel: this.registry.get(e.moduleId)?.shortTitle ?? e.moduleId,
         skills: e.skills,
         difficulty: e.difficulty,
         isCorrect: e.isCorrect === 1,
