@@ -11,7 +11,7 @@
  * question and answer are captured at reveal time.
  */
 
-import type { AnswerFormat, AnswerKey } from "./question.js";
+import { type AnswerFormat, type AnswerKey } from "@edugame/module-api";
 
 /**
  * A `Content` node as recorded in the manifest. An `svg` graphic (and any `image`/`audio`

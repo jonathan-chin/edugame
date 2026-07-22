@@ -22,10 +22,7 @@
  * → misconceptions, "difference between X and Y" → contrasts, examples → analogies).
  */
 
-import { text } from "../content.js";
-import type { AnswerOption, GeneratedQuestion, QuestionModule } from "../question.js";
-import { gradeStandardAnswer, revealStandardAnswer } from "../question.js";
-import type { RNG } from "../rng.js";
+import { gradeStandardAnswer, revealStandardAnswer, text, type AnswerOption, type GeneratedQuestion, type QuestionModule, type RNG } from "@edugame/module-api";
 
 type Level = "beginner" | "advanced";
 

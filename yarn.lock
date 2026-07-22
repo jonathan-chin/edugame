@@ -220,6 +220,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@edugame/api@workspace:api"
   dependencies:
+    "@edugame/modules": "workspace:*"
     "@edugame/shared": "workspace:*"
     "@types/cors": "npm:^2.8.17"
     "@types/express": "npm:^4.17.21"
@@ -255,10 +256,28 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@edugame/module-api@workspace:*, @edugame/module-api@workspace:module-api":
+  version: 0.0.0-use.local
+  resolution: "@edugame/module-api@workspace:module-api"
+  dependencies:
+    typescript: "npm:^5.7.2"
+  languageName: unknown
+  linkType: soft
+
+"@edugame/modules@workspace:*, @edugame/modules@workspace:modules":
+  version: 0.0.0-use.local
+  resolution: "@edugame/modules@workspace:modules"
+  dependencies:
+    "@edugame/module-api": "workspace:*"
+    typescript: "npm:^5.7.2"
+  languageName: unknown
+  linkType: soft
+
 "@edugame/reports@workspace:reports":
   version: 0.0.0-use.local
   resolution: "@edugame/reports@workspace:reports"
   dependencies:
+    "@edugame/modules": "workspace:*"
     "@edugame/shared": "workspace:*"
     "@inquirer/prompts": "npm:^7.2.1"
     "@types/node": "npm:^22.10.2"
@@ -272,6 +291,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@edugame/shared@workspace:shared"
   dependencies:
+    "@edugame/module-api": "workspace:*"
     typescript: "npm:^5.7.2"
   languageName: unknown
   linkType: soft

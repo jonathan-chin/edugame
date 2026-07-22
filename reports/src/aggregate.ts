@@ -7,7 +7,8 @@
  */
 
 // The report generator is its own application, so it composes the stock module list itself.
-import { defaultRegistry, type RecordedQuestion } from "@edugame/shared";
+import { defaultRegistry } from "@edugame/modules";
+import type { RecordedQuestion } from "@edugame/shared";
 import { recordedText } from "./content.js";
 import { canonical, loadOrCreateNameMap, type NameMap } from "./names.js";
 import type { LoadedSession } from "./sessions.js";

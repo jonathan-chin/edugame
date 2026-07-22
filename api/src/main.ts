@@ -12,7 +12,7 @@ import { randomUUID } from "node:crypto";
 import http from "node:http";
 import { loadConfig } from "./config.js";
 import { createEducatorApp } from "./educator-app.js";
-import { defaultRegistry } from "@edugame/shared";
+import { defaultRegistry } from "@edugame/modules";
 import { GameService, type SessionBundle } from "./game-service.js";
 import { Hub } from "./hub.js";
 import { SessionWriter } from "./csv-writer.js";

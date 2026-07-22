@@ -4,7 +4,7 @@
  * reveal (see the WebSocket protocol).
  */
 
-import type { QuestionInstance, RevealAnswer } from "./question.js";
+import { type QuestionInstance, type RevealAnswer } from "@edugame/module-api";
 
 export type Phase = "lobby" | "question" | "revealed";
 

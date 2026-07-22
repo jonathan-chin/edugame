@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@edugame/modules": "workspace:*",
     "@edugame/shared": "workspace:*",
     "cors": "^2.8.5",
     "express": "^4.21.2",

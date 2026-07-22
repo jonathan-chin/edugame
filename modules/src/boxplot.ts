@@ -7,11 +7,8 @@
  *   - "Numerical literacy": identify which of four box plots matches a described property.
  */
 
-import { svg, text } from "../content.js";
-import type { AnswerOption, GeneratedQuestion, QuestionModule } from "../question.js";
-import { gradeStandardAnswer, revealStandardAnswer } from "../question.js";
-import type { RNG } from "../rng.js";
-import { boxPlotSvg, type FiveNumber } from "../svg.js";
+import { gradeStandardAnswer, revealStandardAnswer, svg, text, type AnswerOption, type GeneratedQuestion, type QuestionModule, type RNG } from "@edugame/module-api";
+import { boxPlotSvg, type FiveNumber } from "./svg.js";
 import { BOXPLOT_DOMAIN, buildBoxPlot, FIVE_NUMBER_LABELS, type FiveNumberKey } from "./boxplot-common.js";
 
 const MODULE_ID = "boxplot";

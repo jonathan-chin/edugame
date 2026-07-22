@@ -1630,3 +1630,31 @@ class accuracy as before. Live: the new `{optionId}` submission is accepted, a s
 sending `{format, optionId}` also works (extra field ignored), an invalid option is still rejected,
 and a full round trip in the real student client tapped an option, graded it through the module and
 showed the correct answer highlighted green.
+
+### Human — plugin migration, phase 3: modules become their own package
+
+The final stage split one package into three, so the plugin boundary is structural rather than a
+convention.
+
+**AI implementation:** `@edugame/module-api` holds the contract — content nodes, the seeded RNG, the
+question/answer types, the module interface and the registry factory — and depends on nothing at
+all. `@edugame/modules` holds the stock modules and depends only on the contract.
+`@edugame/shared` keeps the game-level types (live state, WebSocket protocol, analytics, recording,
+name checks), depends on the contract and re-exports it so app imports were untouched, and names no
+module anywhere. Composition moved to the two applications that actually pick a module list:
+`api/src/main.ts` and `reports/src/aggregate.ts`.
+
+**A finding that shaped the split:** `svg.ts`, `distributions.ts` and `stats.ts` looked like shared
+utilities but proved to be used *only* by the chart modules — the apparent app usages were
+`Math.round` false positives. They travelled with the modules instead of bloating the contract,
+which is what kept `module-api` genuinely slim.
+
+**Verified:** the contract package imports no workspace package and declares no dependencies;
+`shared` never mentions a module; `modules` imports only `@edugame/module-api`; and the sole
+`@edugame/modules` import in the API is the composition root, not the engine. Full typecheck and
+build clean, a live game played three questions across two modules with correct grading and label
+resolution, and the report generator produced its usual figures.
+
+**Caveat recorded:** the boundary is declared rather than hard-enforced, since the `node-modules`
+linker hoists and would let an undeclared import resolve. Plug'n'Play or a lint rule would make the
+resolver enforce it.

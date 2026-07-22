@@ -2,8 +2,8 @@
  * Shared generation helper for the two box-and-whisker modules.
  */
 
-import type { RNG } from "../rng.js";
-import type { FiveNumber } from "../svg.js";
+import { type RNG } from "@edugame/module-api";
+import type { FiveNumber } from "./svg.js";
 
 export const BOXPLOT_DOMAIN: [number, number] = [0, 100];
 

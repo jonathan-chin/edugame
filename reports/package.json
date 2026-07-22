@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@edugame/modules": "workspace:*",
     "@edugame/shared": "workspace:*",
     "@inquirer/prompts": "^7.2.1",
     "puppeteer": "^24.0.0"

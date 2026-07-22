@@ -6,6 +6,8 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "packageManager": "yarn@4.17.0",
   "workspaces": [
+    "module-api",
+    "modules",
     "shared",
     "api",
     "student",
@@ -13,14 +15,16 @@
     "reports"
   ],
   "scripts": {
-    "build:shared": "yarn workspace @edugame/shared build",
+    "build:shared": "yarn build:module-api && yarn workspace @edugame/shared build && yarn build:modules",
     "build:student": "yarn workspace @edugame/student build",
     "build:educator": "yarn workspace @edugame/educator build",
     "build": "yarn build:shared && yarn build:student && yarn build:educator",
     "start": "node scripts/orchestrate.mjs",
     "dev": "node scripts/orchestrate.mjs",
     "report": "yarn workspace @edugame/reports report",
-    "typecheck": "yarn workspaces foreach -A run typecheck"
+    "typecheck": "yarn workspaces foreach -A run typecheck",
+    "build:module-api": "yarn workspace @edugame/module-api build",
+    "build:modules": "yarn workspace @edugame/modules build"
   },
   "dependencies": {
     "@ngrok/ngrok": "^1.4.1"

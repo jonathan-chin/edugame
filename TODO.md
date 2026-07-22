@@ -48,7 +48,11 @@ references a specific module either.
    `shared/src/modules/index.ts` is a manifest whose only job is naming the stock list. An
    application composes the registry (`api/src/main.ts`, `reports/src/aggregate.ts`); the engine
    has no opinion about which modules exist.
-3. **Modules live inside `shared/`** — no physical boundary between engine and plugin.
+3. ~~**Modules live inside `shared/`**~~ **Done.** Three packages now: `@edugame/module-api` (the
+   contract, zero dependencies), `@edugame/modules` (the plugins, depending only on the contract),
+   and `@edugame/shared` (game-level state/analytics/recording, which re-exports the contract but
+   names no module). Applications compose: only `api/src/main.ts` and `reports/src/aggregate.ts`
+   import `@edugame/modules`.
 
 **Planned phases:**
 - *Phase 1 — tighten the contract.* **Done.** `registry.ts` holds the lookup contract and a
@@ -58,9 +62,17 @@ references a specific module either.
   (widening `AnswerKey` to an opaque per-module type) was **superseded**: every module is
   multiple-choice for now, so the answer types were collapsed to a single shape instead. Widening
   becomes relevant again only when a second interaction type is added.
-- *Phase 3 — physical boundary.* Extract a slim `@edugame/module-api` (Content, RNG,
-  QuestionInstance, AnswerKey contract) and move `modules/` to their own workspace depending only
-  on it. Core never imports a module; the app composes them.
+- *Phase 3 — physical boundary.* **Done.** The chart/statistics helpers (`svg`, `distributions`,
+  `stats`) turned out to be used only by the chart modules, so they travelled with them rather than
+  bloating the contract.
+
+**All three phases are complete.** What a new module now needs: depend on `@edugame/module-api`,
+export a `QuestionModule`, and have an application add it to a registry. Nothing in the core changes.
+
+**Remaining caveat:** the boundary is *declared* (via package dependencies) rather than hard-enforced,
+because this repo uses Yarn's `node-modules` linker, which hoists and would let an undeclared import
+resolve anyway. Under Plug'n'Play, or with a lint rule forbidding cross-package deep imports, it
+would be enforced by the resolver.
 
 **Constraint to remember:** this code ships to browsers, so there is no filesystem discovery or
 runtime plugin loading. "Plugin" here means a clean contract plus one registration point — Phases

@@ -7,13 +7,10 @@
  *   - "Numerical literacy": compare four distributions and pick the largest/smallest σ.
  */
 
-import { svg, text } from "../content.js";
-import { BELL_DOMAIN, makeDistribution, SPREAD_LEGIBLE_FAMILIES, UNIMODAL_FAMILIES } from "../distributions.js";
-import type { AnswerOption, GeneratedQuestion, QuestionModule } from "../question.js";
-import { gradeStandardAnswer, revealStandardAnswer } from "../question.js";
-import type { RNG } from "../rng.js";
-import { round, STDEV_CATEGORIES } from "../stats.js";
-import { densitySvg } from "../svg.js";
+import { gradeStandardAnswer, revealStandardAnswer, svg, text, type AnswerOption, type GeneratedQuestion, type QuestionModule, type RNG } from "@edugame/module-api";
+import { BELL_DOMAIN, makeDistribution, SPREAD_LEGIBLE_FAMILIES, UNIMODAL_FAMILIES } from "./distributions.js";
+import { round, STDEV_CATEGORIES } from "./stats.js";
+import { densitySvg } from "./svg.js";
 
 const MODULE_ID = "stdev";
 const SKILL_GRAPHICAL = "Graphical literacy";

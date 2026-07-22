@@ -1,7 +1,7 @@
 {
-  "name": "@edugame/shared",
+  "name": "@edugame/modules",
   "version": "0.1.0",
-  "description": "Game-level shared types: live state, WebSocket protocol, analytics, recording, name checks.",
+  "description": "The stock question modules. Plugins: they depend on the module API, and nothing depends on them except an application composing a registry.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,10 +20,10 @@
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "devDependencies": {
-    "typescript": "^5.7.2"
-  },
   "dependencies": {
     "@edugame/module-api": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
   }
 }

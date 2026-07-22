@@ -1,7 +1,7 @@
 {
-  "name": "@edugame/shared",
+  "name": "@edugame/module-api",
   "version": "0.1.0",
-  "description": "Game-level shared types: live state, WebSocket protocol, analytics, recording, name checks.",
+  "description": "The question-module contract: everything a module author needs, and nothing about the game.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,8 +22,5 @@
   },
   "devDependencies": {
     "typescript": "^5.7.2"
-  },
-  "dependencies": {
-    "@edugame/module-api": "workspace:*"
   }
 }
