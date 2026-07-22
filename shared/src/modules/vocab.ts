@@ -33,6 +33,22 @@ export interface VocabAtom {
   /** Which level module asks *about* this term. Omitted by modules that don't split by level. */
   level?: Level;
   definition: string;
+  /**
+   * Alternate wordings of `definition`. The correct answer is drawn from these *and* `definition`,
+   * so a student meeting the term twice does not see the same sentence and cannot pass by
+   * recognising a memorised string instead of the meaning.
+   */
+  phrasings?: string[];
+  /**
+   * Hand-authored near-misses for THIS term. When present these replace the generated distractors,
+   * which can only ever be as believable as the nearest other definition in the bank — for a term
+   * with no close neighbour that is not very believable at all.
+   *
+   * These are deliberately allowed to sit close to the truth: a distractor a student has to argue
+   * with is worth more than one they can dismiss on sight, and a genuinely contested option is a
+   * class discussion rather than a defect.
+   */
+  distractors?: string[];
   misconception?: string;
   analogy?: string;
   /** A term this is easily confused with, plus the phrase that distinguishes THIS one. */
@@ -256,7 +272,12 @@ function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: 
   if (type === "definition") {
     const a = rng.pick(subjDef);
     const prompt = rng.pick(DEFINITION_TEMPLATES)(a.term);
-    return assemble(rng, moduleId, type, prompt, a.definition, believableDistractors(rng, a, bankDefs, byTerm));
+    // The correct answer varies across draws when the atom carries alternate phrasings; the
+    // distractors come from the atom's own hand-authored set when it has one, else from the
+    // nearest other definitions in the bank.
+    const correct = rng.pick([a.definition, ...(a.phrasings ?? [])]);
+    const distractors = a.distractors?.length ? a.distractors : believableDistractors(rng, a, bankDefs, byTerm);
+    return assemble(rng, moduleId, type, prompt, correct, distractors);
   }
 
   if (type === "discriminate") {
@@ -302,6 +323,21 @@ function validateVocabBank(id: string, bank: VocabAtom[]): void {
     if (!a.definition) problems.push(`${JSON.stringify(a.term)} has no definition`);
     if (a.contrast && !terms.has(a.contrast.with)) {
       problems.push(`${JSON.stringify(a.term)} contrasts with ${JSON.stringify(a.contrast.with)}, which is not in this bank`);
+    }
+    // Hand-authored answer pools: a question needs three distractors, and no "wrong" answer may
+    // duplicate a wording we would also accept as correct.
+    const correctForms = new Set([a.definition, ...(a.phrasings ?? [])]);
+    if (a.distractors && a.distractors.length < 3) {
+      problems.push(`${JSON.stringify(a.term)} has only ${a.distractors.length} distractor(s); 3 are needed`);
+    }
+    for (const d of a.distractors ?? []) {
+      if (correctForms.has(d)) problems.push(`${JSON.stringify(a.term)} lists a distractor identical to a correct answer: ${JSON.stringify(d)}`);
+    }
+    if (new Set(a.distractors ?? []).size !== (a.distractors ?? []).length) {
+      problems.push(`${JSON.stringify(a.term)} has duplicate distractors`);
+    }
+    if (new Set(correctForms).size !== 1 + (a.phrasings?.length ?? 0)) {
+      problems.push(`${JSON.stringify(a.term)} has a phrasing identical to another correct answer`);
     }
   }
   if (problems.length) {
