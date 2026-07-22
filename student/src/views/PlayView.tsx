@@ -35,7 +35,7 @@ export function PlayView({
   const showTimer = remaining != null && !revealed;
 
   const mutation = useMutation({
-    mutationFn: (optionId: string) => submitAnswer(token, { format: "multiple-choice", optionId }),
+    mutationFn: (optionId: string) => submitAnswer(token, { optionId }),
     onError: () => setError("Couldn't submit — the answer may be locked."),
   });
 

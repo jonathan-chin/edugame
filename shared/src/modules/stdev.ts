@@ -40,7 +40,7 @@ function generateGraphical(rng: RNG): GeneratedQuestion {
       answerFormat: "multiple-choice",
       options,
     },
-    key: { format: "multiple-choice", correctOptionId: target.id },
+    key: { correctOptionId: target.id },
   };
 }
 
@@ -71,7 +71,7 @@ function generateNumerical(rng: RNG): GeneratedQuestion {
       answerFormat: "multiple-choice",
       options,
     },
-    key: { format: "multiple-choice", correctOptionId },
+    key: { correctOptionId },
   };
 }
 

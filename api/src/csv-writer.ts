@@ -67,7 +67,6 @@ export class SessionWriter {
       answerFormat: q.answerFormat,
       prompt: this.externalize(q.prompt, `${base}.prompt`),
       options: q.options?.map((o) => ({ id: o.id, content: this.externalize(o.content, `${base}.opt-${safe(o.id)}`) })),
-      valueUnit: q.valueUnit,
       correct: key,
     };
   }

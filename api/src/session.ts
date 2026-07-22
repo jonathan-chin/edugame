@@ -245,7 +245,8 @@ export class GameSession {
   /** The engine supplies the questionId; only the module knows how to read its own key. */
   private revealInfo(moduleId: string, key: AnswerKey, questionId: string): RevealInfo {
     const module = this.registry.get(moduleId);
-    return { questionId, ...(module ? module.reveal(key) : {}) };
+    if (!module) throw new HttpError(400, `Unknown module: ${moduleId}`);
+    return { questionId, ...module.reveal(key) };
   }
 
   /**
@@ -284,13 +285,7 @@ export class GameSession {
       throw new HttpError(401, "Unknown student token");
     }
     const q = this.current.public;
-    if (q.answerFormat === "multiple-choice") {
-      if (submission.format !== "multiple-choice") throw new HttpError(400, "Expected a multiple-choice answer");
-      const valid = q.options?.some((o) => o.id === submission.optionId);
-      if (!valid) throw new HttpError(400, "Unknown option");
-    } else if (submission.format !== "value") {
-      throw new HttpError(400, "Expected a value answer");
-    }
+    if (!q.options?.some((o) => o.id === submission.optionId)) throw new HttpError(400, "Unknown option");
     this.currentAnswers.set(token, submission);
   }
 

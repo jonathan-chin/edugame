@@ -15,7 +15,12 @@
 import type { Content } from "./content.js";
 import type { RNG } from "./rng.js";
 
-export type AnswerFormat = "multiple-choice" | "value";
+/**
+ * How a question is answered. One member for now: every module is multiple-choice, because a
+ * browser client can only collect an interaction it has a widget for. Adding a member here is the
+ * start of adding a new interaction type, and means new client widgets to match.
+ */
+export type AnswerFormat = "multiple-choice";
 
 export interface AnswerOption {
   id: string;
@@ -36,26 +41,21 @@ export interface QuestionInstance {
   difficulty: number;
   prompt: Content;
   answerFormat: AnswerFormat;
-  /** Present when `answerFormat === "multiple-choice"`. */
   options?: AnswerOption[];
-  /** Present when `answerFormat === "value"`; a display unit like "cm". */
-  valueUnit?: string;
 }
 
-export type AnswerKey =
-  | { format: "multiple-choice"; correctOptionId: string }
-  | { format: "value"; correct: number; tolerance: number };
+/** What a module records server-side to decide correctness. Never sent to a client before reveal. */
+export interface AnswerKey {
+  correctOptionId: string;
+}
 
 /**
  * What clients need in order to show the answer, minus the `questionId` the engine supplies.
  * A module produces this from its own key, so the engine never has to interpret a key itself.
  */
 export interface RevealAnswer {
-  /** For multiple-choice: the id of the correct option. */
-  correctOptionId?: string;
-  /** For value questions: the accepted value and tolerance. */
-  correctValue?: number;
-  tolerance?: number;
+  /** The id of the correct option, for clients to highlight. */
+  correctOptionId: string;
 }
 
 export interface GeneratedQuestion {
@@ -63,9 +63,10 @@ export interface GeneratedQuestion {
   key: AnswerKey;
 }
 
-export type Submission =
-  | { format: "multiple-choice"; optionId: string }
-  | { format: "value"; value: number };
+/** What a student sends back. */
+export interface Submission {
+  optionId: string;
+}
 
 export interface QuestionModule {
   id: string;
@@ -95,22 +96,14 @@ export interface QuestionModule {
  * own pair instead.
  */
 export function gradeStandardAnswer(key: AnswerKey, sub: Submission): boolean {
-  if (key.format === "multiple-choice" && sub.format === "multiple-choice") {
-    return key.correctOptionId === sub.optionId;
-  }
-  if (key.format === "value" && sub.format === "value") {
-    return Math.abs(key.correct - sub.value) <= key.tolerance;
-  }
-  return false;
+  return key.correctOptionId === sub.optionId;
 }
 
 export function revealStandardAnswer(key: AnswerKey): RevealAnswer {
-  return key.format === "multiple-choice"
-    ? { correctOptionId: key.correctOptionId }
-    : { correctValue: key.correct, tolerance: key.tolerance };
+  return { correctOptionId: key.correctOptionId };
 }
 
 /** A compact, CSV-safe string form of a submission. */
 export function submissionToString(sub: Submission): string {
-  return sub.format === "multiple-choice" ? sub.optionId : String(sub.value);
+  return sub.optionId;
 }

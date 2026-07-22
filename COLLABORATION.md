@@ -1603,3 +1603,30 @@ resolved through the registry. Typecheck and build clean.
 **Honest limit:** the third-party key needed a cast, because `AnswerKey` is still the closed union.
 Widening it is the remaining scrap of phase 2 and is now a pure type change — nothing switches on
 it any more.
+
+### Human — every module is multiple-choice, for now
+
+Reviewing the remaining `AnswerKey` concern, the human asked whether the reveal payload was only
+ever the correct option, and decided to simplify: all question modules are multiple-choice for now,
+for submissions too, with other question kinds an explicit later goal.
+
+**The value format turned out to be entirely dead.** Every module already emitted
+`answerFormat: "multiple-choice"`, and neither client had any way to render or collect a numeric
+answer — so the union's second member had never been reachable end to end.
+
+**AI implementation:** `AnswerFormat` became a one-member union (kept as the expansion slot),
+`AnswerKey` and `RevealAnswer` became `{ correctOptionId }`, `Submission` became `{ optionId }`,
+and `valueUnit` was dropped from the question, the recording and the CSV writer. `gradeStandardAnswer`
+is now a single comparison. Submission validation collapsed to "is that one of this question's
+options".
+
+This supersedes the planned widening of `AnswerKey` to an opaque per-module type: with one answer
+shape there is nothing to widen. It becomes relevant again only when a second interaction type
+arrives — and the real cost then is the client widgets to collect and display it, not the types.
+
+**Verified:** existing recorded sessions still read correctly — their keys carry an extra `format`
+field that is simply ignored, and the report generator resolved the correct option and the same 71%
+class accuracy as before. Live: the new `{optionId}` submission is accepted, a stale client still
+sending `{format, optionId}` also works (extra field ignored), an invalid option is still rejected,
+and a full round trip in the real student client tapped an option, graded it through the module and
+showed the correct answer highlighted green.

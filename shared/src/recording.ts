@@ -33,7 +33,6 @@ export interface RecordedQuestion {
   answerFormat: AnswerFormat;
   prompt: RecordedContent;
   options?: { id: string; content: RecordedContent }[];
-  valueUnit?: string;
   /** The correct answer — disclosed in the record (the live `QuestionInstance` never is). */
   correct: AnswerKey;
 }

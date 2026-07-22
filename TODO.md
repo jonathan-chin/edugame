@@ -54,9 +54,10 @@ references a specific module either.
 - *Phase 1 — tighten the contract.* **Done.** `registry.ts` holds the lookup contract and a
   `createRegistry` factory and imports no modules; `modules/index.ts` is the manifest. Verified by
   composing a session from a registry containing only a third-party module.
-- *Phase 2 — move grading and reveal into the module (the unlock).* **Done.** What remains of it:
-  widen `AnswerKey` from the closed union to an opaque per-module type, now that no call site
-  switches on it.
+- *Phase 2 — move grading and reveal into the module (the unlock).* **Done.** The follow-up
+  (widening `AnswerKey` to an opaque per-module type) was **superseded**: every module is
+  multiple-choice for now, so the answer types were collapsed to a single shape instead. Widening
+  becomes relevant again only when a second interaction type is added.
 - *Phase 3 — physical boundary.* Extract a slim `@edugame/module-api` (Content, RNG,
   QuestionInstance, AnswerKey contract) and move `modules/` to their own workspace depending only
   on it. Core never imports a module; the app composes them.
@@ -64,6 +65,12 @@ references a specific module either.
 **Constraint to remember:** this code ships to browsers, so there is no filesystem discovery or
 runtime plugin loading. "Plugin" here means a clean contract plus one registration point — Phases
 1–2 achieve that; Phase 3 makes the boundary enforceable.
+
+**Current simplification:** every question is multiple-choice. `AnswerFormat` is a one-member
+union, `AnswerKey`/`RevealAnswer` are `{ correctOptionId }` and `Submission` is `{ optionId }`. The
+value format was removed as dead — no module ever generated one and neither client could render it.
+Adding a second interaction type (ordering, matching, short text) means widening these *and*
+building the client widgets to collect and display it; that is the real cost, not the types.
 
 **The rule that shapes the rest: keys open, submissions bounded.** A module may invent any key
 shape, because only it grades that key. `Submission` stays a small versioned union, because a

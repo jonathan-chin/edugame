@@ -220,7 +220,7 @@ function assemble(rng: RNG, moduleId: string, type: QType, prompt: string, corre
   const correctOptionId = options[items.findIndex((it) => it.ok)]!.id;
   return {
     public: { id: rng.id("voc"), moduleId, skills: [SKILL[type]], difficulty: DIFFICULTY[type], prompt: text(prompt), answerFormat: "multiple-choice", options },
-    key: { format: "multiple-choice", correctOptionId },
+    key: { correctOptionId },
   };
 }
 
