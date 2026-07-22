@@ -1617,9 +1617,11 @@ function weekModule(week: number, theme: string, short: string, atoms: VocabAtom
     `Vocabulary from Week ${week} of the bootcamp — ${theme.toLowerCase()}.`,
     atoms,
     atoms,
-    // Plainer than the interview-prep default: these are misconceptions to unlearn, not things
-    // you would say to a recruiter.
-    { redflagPrompt: (term) => `Which of these is a common misconception about ${term}?` },
+    // No "red flags" here. That archetype asks a student to pick the *false* statement, with the
+    // term's own correct definition sitting there as a distractor — a recognition trap that suits
+    // interview prep but not lecture review. The `misconception` field stays on the atoms below;
+    // it is simply unused by these modules for now.
+    { exclude: ["redflag"] },
   );
 }
 

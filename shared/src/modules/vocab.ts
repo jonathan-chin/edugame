@@ -108,7 +108,9 @@ const SECURITY: VocabAtom[] = [
 // Generator
 // ---------------------------------------------------------------------------
 
-type QType = "definition" | "discriminate" | "redflag" | "analogy";
+/** The question archetypes the vocabulary generator can produce. */
+export type VocabArchetype = "definition" | "discriminate" | "redflag" | "analogy";
+type QType = VocabArchetype;
 
 const SKILL: Record<QType, string> = {
   definition: "Definitions",
@@ -208,19 +210,22 @@ function assemble(rng: RNG, moduleId: string, type: QType, prompt: string, corre
 /** Per-module wording tweaks. The defaults are the interview-prep phrasing. */
 export interface VocabOptions {
   /**
-   * How to ask a red-flag question. The default frames it as a recruiter conversation, which
-   * suits interview vocabulary; a course-review module wants plainer wording, since a
-   * misconception like "a merge conflict means you did something wrong" is not something you
-   * would say to a recruiter in the first place.
+   * Archetypes this module must never generate, even where its bank could support them. Used to
+   * keep an archetype that suits one module family out of another — e.g. "red flags" asks a
+   * student to pick the *false* statement, which fits interview prep but not lecture review.
+   * The underlying atom data (misconceptions and the like) is left intact either way.
    */
-  redflagPrompt?: (term: string) => string;
+  exclude?: VocabArchetype[];
 }
 
 /**
+ * The atom buckets each archetype draws on, plus which archetypes this module can actually
+ * produce — a bank must carry the right fields, and the module may exclude some outright.
+ *
  * @param subjects the atoms this module asks *about* (its difficulty level)
  * @param bank     the full domain bank, used for distractors and pair-partners
  */
-function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: VocabAtom[], opts: VocabOptions = {}): GeneratedQuestion {
+function analyze(subjects: VocabAtom[], bank: VocabAtom[], opts: VocabOptions) {
   const byTerm = new Map(bank.map((a) => [a.term, a] as const));
   const bankDefs = bank.filter((a) => a.definition);
   const bankAnalogies = bank.filter((a) => a.analogy);
@@ -235,6 +240,16 @@ function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: 
   if (subjContrast.length >= 1) feasible.push("discriminate");
   if (subjMisc.length >= 1 && bankDefs.length >= 3) feasible.push("redflag");
   if (subjAnalogy.length >= 1 && bankAnalogies.length >= 4) feasible.push("analogy");
+
+  const excluded = opts.exclude ?? [];
+  return {
+    byTerm, bankDefs, bankAnalogies, subjDef, subjAnalogy, subjContrast, subjMisc,
+    feasible: feasible.filter((t) => !excluded.includes(t)),
+  };
+}
+
+function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: VocabAtom[], opts: VocabOptions = {}): GeneratedQuestion {
+  const { byTerm, bankDefs, bankAnalogies, subjDef, subjAnalogy, subjContrast, subjMisc, feasible } = analyze(subjects, bank, opts);
 
   const type = rng.pick(feasible);
 
@@ -261,9 +276,7 @@ function generateVocab(rng: RNG, moduleId: string, subjects: VocabAtom[], bank: 
   if (type === "redflag") {
     const a = rng.pick(subjMisc);
     const distractors = [a.definition, ...rng.shuffle(bankDefs.filter((x) => x !== a).map((x) => x.definition)).slice(0, 2)];
-    const prompt =
-      opts.redflagPrompt?.(a.term) ??
-      `A recruiter asks you about ${a.term}. Which answer is a red flag — something you should NOT say?`;
+    const prompt = `A recruiter asks you about ${a.term}. Which answer is a red flag — something you should NOT say?`;
     return assemble(rng, moduleId, type, prompt, a.misconception!, distractors);
   }
 
@@ -299,6 +312,11 @@ function validateVocabBank(id: string, bank: VocabAtom[]): void {
 /** Wrap a bank as a selectable module. `subjects` are asked about; `bank` supplies distractors. */
 export function makeVocabModule(id: string, title: string, shortTitle: string, description: string, subjects: VocabAtom[], bank: VocabAtom[], opts?: VocabOptions): QuestionModule {
   validateVocabBank(id, bank);
+  // An exclusion that leaves nothing to generate would only surface when a class asked for a
+  // question, so check it at import instead.
+  if (analyze(subjects, bank, opts ?? {}).feasible.length === 0) {
+    throw new Error(`Vocabulary module "${id}" can generate no questions: its bank supports no archetype that is not excluded.`);
+  }
   return { id, title, shortTitle, description, generate: (rng) => generateVocab(rng, id, subjects, bank, opts) };
 }
 
