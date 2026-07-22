@@ -135,8 +135,10 @@ function optionLabel(q: RecordedQuestion | null, optionId: string): string | nul
   return opt ? recordedText(opt.content) ?? null : null;
 }
 
+/** Ask the owning module to read its own key, rather than assuming an answer shape here. */
 function correctOptionId(q: RecordedQuestion | null): string | null {
-  return q && q.correct.format === "multiple-choice" ? q.correct.correctOptionId : null;
+  if (!q) return null;
+  return getModule(q.moduleId)?.reveal(q.correct).correctOptionId ?? null;
 }
 
 export function buildModel(sessions: LoadedSession[], sessionsDir: string): ReportModel {

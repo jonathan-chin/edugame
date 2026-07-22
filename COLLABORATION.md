@@ -1550,3 +1550,30 @@ runtime loading.
 `modules/boxplot-common.js`, leaking a single module's helpers into the core's public API. Verified
 all four symbols are used only by `boxplot.ts` (which imports the file directly, not via the
 barrel), removed the re-export, and confirmed a clean typecheck and build across every workspace.
+
+### Human — plugin migration, phase 2: the engine stops interpreting answer keys
+
+Having recorded the plugin work earlier, the human asked for a model and then to start building.
+The model agreed: three layers (a contract-only `module-api`, plugins that own their own behaviour,
+and a composition root that injects the registry), governed by one rule — **keys open, submissions
+bounded**. A module may invent any answer-key shape because only it grades that key; `Submission`
+stays a small versioned union because a browser client cannot render an answer widget it has never
+heard of.
+
+**Built first (phase 2, the only phase that changes behaviour):** `QuestionModule` gained
+`grade(key, submission)` and `reveal(key)`. Every site where the engine previously switched on an
+answer format now asks the owning module instead — grading during reveal, building `RevealInfo`,
+the student history (which resolves a *recorded* key via its module), and the reports tool. The
+central `grade()` is gone; `gradeStandardAnswer` / `revealStandardAnswer` remain as opt-in helpers
+that modules wire in as one-liners. `RevealInfo` became `{ questionId } & RevealAnswer`, so the
+module produces the answer half and the engine supplies only the id it owns.
+
+**Verified:** a grep for answer-shape switches outside modules returns nothing. 1,500 generated
+questions across five modules confirmed `reveal()` always names the key's true correct option and
+`grade()` returns true/false correctly on right and wrong picks, zero defects. Then live: joined a
+real game, answered, revealed, and confirmed the student history resolved its `correctOptionId`
+through the module. Full typecheck and build clean; 62 lines changed.
+
+**What it bought:** a module can now invent and grade its own key shape without touching core.
+`AnswerKey` is still a closed union, but nothing switches on it, so widening it is a pure type
+change with no call-site churn.

@@ -16,7 +16,6 @@ import {
   createRng,
   type GeneratedQuestion,
   getModule,
-  grade,
   type GroupStat,
   type Phase,
   type PublicGameState,
@@ -211,13 +210,16 @@ export class GameSession {
 
     const key = this.current.key;
     const q = this.current.public;
+    // Only the module that produced this key knows how to grade against it.
+    const module = getModule(q.moduleId);
+    if (!module) throw new HttpError(400, `Unknown module: ${q.moduleId}`);
     const now = new Date().toISOString();
     const rows: AnswerEventRow[] = [];
 
     for (const [token, submission] of this.currentAnswers) {
       const student = this.students.get(token);
       if (!student) continue;
-      const isCorrect = grade(key, submission) ? 1 : 0;
+      const isCorrect = module.grade(key, submission) ? 1 : 0;
       rows.push({
         timestamp: now,
         session: this.sessionId,
@@ -233,14 +235,13 @@ export class GameSession {
     }
 
     this.events.push(...rows);
-    return { rows, reveal: this.revealInfo(key, q.id) };
+    return { rows, reveal: this.revealInfo(q.moduleId, key, q.id) };
   }
 
-  private revealInfo(key: AnswerKey, questionId: string): RevealInfo {
-    if (key.format === "multiple-choice") {
-      return { questionId, correctOptionId: key.correctOptionId };
-    }
-    return { questionId, correctValue: key.correct, tolerance: key.tolerance };
+  /** The engine supplies the questionId; only the module knows how to read its own key. */
+  private revealInfo(moduleId: string, key: AnswerKey, questionId: string): RevealInfo {
+    const module = getModule(moduleId);
+    return { questionId, ...(module ? module.reveal(key) : {}) };
   }
 
   /**
@@ -251,7 +252,7 @@ export class GameSession {
    */
   currentReveal(): RevealInfo | null {
     if (this.phase !== "revealed" || !this.current) return null;
-    return this.revealInfo(this.current.key, this.current.public.id);
+    return this.revealInfo(this.current.public.moduleId, this.current.key, this.current.public.id);
   }
 
   /** The current generated question (public instance + answer key), for the reveal-time
@@ -409,8 +410,7 @@ export class GameSession {
     const byId = new Map(this.recordedQuestions.map((q) => [q.id, q] as const));
     return [...mine].reverse().map((e) => {
       const recorded = byId.get(e.questionId);
-      const correctOptionId =
-        recorded?.correct.format === "multiple-choice" ? recorded.correct.correctOptionId : undefined;
+      const correctOptionId = recorded ? getModule(recorded.moduleId)?.reveal(recorded.correct).correctOptionId : undefined;
       const options = (recorded?.options ?? []).map((o, i) => ({
         id: o.id,
         text: contentText(o.content) ?? `Option ${i + 1}`,

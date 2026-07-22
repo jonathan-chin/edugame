@@ -24,6 +24,7 @@
 
 import { text } from "../content.js";
 import type { AnswerOption, GeneratedQuestion, QuestionModule } from "../question.js";
+import { gradeStandardAnswer, revealStandardAnswer } from "../question.js";
 import type { RNG } from "../rng.js";
 
 type Level = "beginner" | "advanced";
@@ -353,7 +354,12 @@ export function makeVocabModule(id: string, title: string, shortTitle: string, d
   if (analyze(subjects, bank, opts ?? {}).feasible.length === 0) {
     throw new Error(`Vocabulary module "${id}" can generate no questions: its bank supports no archetype that is not excluded.`);
   }
-  return { id, title, shortTitle, description, generate: (rng) => generateVocab(rng, id, subjects, bank, opts) };
+  return {
+    id, title, shortTitle, description,
+    generate: (rng) => generateVocab(rng, id, subjects, bank, opts),
+    grade: gradeStandardAnswer,
+    reveal: revealStandardAnswer,
+  };
 }
 
 /** Build the Beginner + Advanced pair of modules for a domain. */

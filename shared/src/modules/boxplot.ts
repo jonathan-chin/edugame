@@ -9,6 +9,7 @@
 
 import { svg, text } from "../content.js";
 import type { AnswerOption, GeneratedQuestion, QuestionModule } from "../question.js";
+import { gradeStandardAnswer, revealStandardAnswer } from "../question.js";
 import type { RNG } from "../rng.js";
 import { boxPlotSvg, type FiveNumber } from "../svg.js";
 import { BOXPLOT_DOMAIN, buildBoxPlot, FIVE_NUMBER_LABELS, type FiveNumberKey } from "./boxplot-common.js";
@@ -119,4 +120,6 @@ export const boxplotModule: QuestionModule = {
   generate(rng: RNG): GeneratedQuestion {
     return rng.bool() ? generateGraphical(rng) : generateNumerical(rng);
   },
+  grade: gradeStandardAnswer,
+  reveal: revealStandardAnswer,
 };

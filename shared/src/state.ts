@@ -4,7 +4,7 @@
  * reveal (see the WebSocket protocol).
  */
 
-import type { QuestionInstance } from "./question.js";
+import type { QuestionInstance, RevealAnswer } from "./question.js";
 
 export type Phase = "lobby" | "question" | "revealed";
 
@@ -41,13 +41,8 @@ export interface PublicGameState {
 }
 
 /** What is disclosed to clients when the educator reveals the answer. */
-export interface RevealInfo {
+export interface RevealInfo extends RevealAnswer {
   questionId: string;
-  /** For multiple-choice: the id of the correct option. */
-  correctOptionId?: string;
-  /** For value questions: the accepted value and tolerance. */
-  correctValue?: number;
-  tolerance?: number;
 }
 
 /**

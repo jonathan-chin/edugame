@@ -46,6 +46,18 @@ export type AnswerKey =
   | { format: "multiple-choice"; correctOptionId: string }
   | { format: "value"; correct: number; tolerance: number };
 
+/**
+ * What clients need in order to show the answer, minus the `questionId` the engine supplies.
+ * A module produces this from its own key, so the engine never has to interpret a key itself.
+ */
+export interface RevealAnswer {
+  /** For multiple-choice: the id of the correct option. */
+  correctOptionId?: string;
+  /** For value questions: the accepted value and tolerance. */
+  correctValue?: number;
+  tolerance?: number;
+}
+
 export interface GeneratedQuestion {
   public: QuestionInstance;
   key: AnswerKey;
@@ -64,13 +76,25 @@ export interface QuestionModule {
   description: string;
   /**
    * Generate a question. A module may produce different sub-skill variants (each tagged
-   * on the resulting instance's `skill`); which one is chosen is up to the module.
+   * on the resulting instance's `skills`); which one is chosen is up to the module.
    */
   generate(rng: RNG): GeneratedQuestion;
+  /**
+   * Decide whether a submission answers this module's own key correctly. The engine never
+   * inspects a key itself, so a module is free to use whatever key shape it likes — including
+   * one the engine has never heard of.
+   */
+  grade(key: AnswerKey, submission: Submission): boolean;
+  /** Turn this module's key into what clients need to show the answer on reveal. */
+  reveal(key: AnswerKey): RevealAnswer;
 }
 
-/** Grade a submission against the answer key. Mismatched formats are always wrong. */
-export function grade(key: AnswerKey, sub: Submission): boolean {
+/**
+ * The standard grading and reveal for the two answer shapes the clients can render today. A
+ * module using those shapes wires these straight in; a module inventing its own key writes its
+ * own pair instead.
+ */
+export function gradeStandardAnswer(key: AnswerKey, sub: Submission): boolean {
   if (key.format === "multiple-choice" && sub.format === "multiple-choice") {
     return key.correctOptionId === sub.optionId;
   }
@@ -78,6 +102,12 @@ export function grade(key: AnswerKey, sub: Submission): boolean {
     return Math.abs(key.correct - sub.value) <= key.tolerance;
   }
   return false;
+}
+
+export function revealStandardAnswer(key: AnswerKey): RevealAnswer {
+  return key.format === "multiple-choice"
+    ? { correctOptionId: key.correctOptionId }
+    : { correctValue: key.correct, tolerance: key.tolerance };
 }
 
 /** A compact, CSV-safe string form of a submission. */

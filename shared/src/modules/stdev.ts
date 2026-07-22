@@ -10,6 +10,7 @@
 import { svg, text } from "../content.js";
 import { BELL_DOMAIN, makeDistribution, SPREAD_LEGIBLE_FAMILIES, UNIMODAL_FAMILIES } from "../distributions.js";
 import type { AnswerOption, GeneratedQuestion, QuestionModule } from "../question.js";
+import { gradeStandardAnswer, revealStandardAnswer } from "../question.js";
 import type { RNG } from "../rng.js";
 import { round, STDEV_CATEGORIES } from "../stats.js";
 import { densitySvg } from "../svg.js";
@@ -82,4 +83,6 @@ export const stdevModule: QuestionModule = {
   generate(rng: RNG): GeneratedQuestion {
     return rng.bool() ? generateGraphical(rng) : generateNumerical(rng);
   },
+  grade: gradeStandardAnswer,
+  reveal: revealStandardAnswer,
 };
