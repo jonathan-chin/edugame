@@ -11,7 +11,7 @@
  * svg.ts) — the dataset/pdf never crosses the wire.
  */
 
-import type { RNG } from "@edugame/module-api";
+import type { RNG } from "@philosoph/module-api";
 
 export type FamilyId = "normal" | "skew" | "peaked" | "plateau" | "bimodal" | "heavy-tail";
 

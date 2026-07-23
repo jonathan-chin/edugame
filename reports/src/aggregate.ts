@@ -6,9 +6,9 @@
  * (a single student's answer to a single recreated question), matching how the reports read.
  */
 
-// The report generator is its own application, so it composes the stock module list itself.
-import { defaultRegistry } from "@edugame/modules";
-import type { RecordedQuestion } from "@edugame/shared";
+import { createRegistry } from "@philosoph/module-api";
+import type { RecordedQuestion } from "@philosoph/shared";
+import { installedModules } from "./generated/installed-modules.js";
 import { recordedText } from "./content.js";
 import { canonical, loadOrCreateNameMap, type NameMap } from "./names.js";
 import type { LoadedSession } from "./sessions.js";
@@ -106,7 +106,10 @@ interface Answer {
   question: RecordedQuestion | null;
 }
 
-const moduleLabel = (id: string) => defaultRegistry.get(id)?.shortTitle ?? id;
+// Same content-agnostic composition as the server: label/reveal resolution uses whatever module
+// packages are installed. Ids from a package that isn't installed fall back to the raw id.
+const registry = createRegistry(installedModules);
+const moduleLabel = (id: string) => registry.get(id)?.shortTitle ?? id;
 
 function acc(answered: number, correct: number): number {
   return answered > 0 ? correct / answered : 0;
@@ -140,7 +143,7 @@ function optionLabel(q: RecordedQuestion | null, optionId: string): string | nul
 /** Ask the owning module to read its own key, rather than assuming an answer shape here. */
 function correctOptionId(q: RecordedQuestion | null): string | null {
   if (!q) return null;
-  return defaultRegistry.get(q.moduleId)?.reveal(q.correct).correctOptionId ?? null;
+  return registry.get(q.moduleId)?.reveal(q.correct).correctOptionId ?? null;
 }
 
 export function buildModel(sessions: LoadedSession[], sessionsDir: string): ReportModel {

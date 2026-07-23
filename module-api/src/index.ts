@@ -1,5 +1,5 @@
 /**
- * @edugame/module-api — the contract between the game engine and a question module.
+ * @philosoph/module-api — the contract between the game engine and a question module.
  *
  * Everything a module author needs, and nothing about the game itself: how a question is shaped,
  * how an answer is graded and revealed, the content nodes a prompt can be built from, the seeded

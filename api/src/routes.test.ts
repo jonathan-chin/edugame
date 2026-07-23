@@ -11,7 +11,7 @@
  * So these tests assert route *absence*, which no typechecker can. They run the real apps over
  * real HTTP on an ephemeral loopback port.
  *
- *   yarn workspace @edugame/api test
+ *   yarn workspace @philosoph/api test
  */
 
 import assert from "node:assert/strict";
@@ -19,9 +19,9 @@ import fs from "node:fs";
 import type { AddressInfo } from "node:net";
 import http from "node:http";
 import test from "node:test";
-import { createRegistry } from "@edugame/module-api";
-import { defaultRegistry } from "@edugame/modules";
-import { SOLO_STUDENT_TOKEN } from "@edugame/shared";
+import { createRegistry } from "@philosoph/module-api";
+import { exampleModule } from "@philosoph/module-api/example";
+import { SOLO_STUDENT_TOKEN } from "@philosoph/shared";
 import type { Express } from "express";
 import { SessionWriter } from "./csv-writer.js";
 import { createEducatorApp } from "./educator-app.js";
@@ -44,12 +44,16 @@ const FLOW_ROUTES = [
 
 const TMP = process.env.TMPDIR ?? "/tmp";
 
+// These tests exercise route topology, not content, so they compose their own one-module registry
+// from the shipped example — no dependency on any question-module package.
+const testRegistry = createRegistry([exampleModule]);
+
 function makeService(mode: "classroom" | "solo") {
   // A throwaway sessions directory: these tests exercise routing, not persistence.
   const dir = `${TMP}/edugame-routes-test-${mode}-${process.pid}`;
   return new GameService(() => {
     const id = `test-${mode}`;
-    return { session: new GameSession(id, "seed", defaultRegistry), writer: new SessionWriter(dir, id) };
+    return { session: new GameSession(id, "seed", testRegistry), writer: new SessionWriter(dir, id) };
   }, mode);
 }
 
@@ -104,7 +108,7 @@ test("student routes still work on the student app", async () => {
 });
 
 test("the educator app has flow control", async () => {
-  await withServer(createEducatorApp(makeService("classroom"), null, defaultRegistry), async (base) => {
+  await withServer(createEducatorApp(makeService("classroom"), null, testRegistry), async (base) => {
     for (const { method, path } of FLOW_ROUTES) {
       assert.notEqual((await call(base, method, path)).status, 404, `${method} ${path} must exist for the educator`);
     }
@@ -112,7 +116,7 @@ test("the educator app has flow control", async () => {
 });
 
 test("the solo app has both player and flow routes, and reports solo mode", async () => {
-  await withServer(createSoloApp(makeService("solo"), null, defaultRegistry), async (base) => {
+  await withServer(createSoloApp(makeService("solo"), null, testRegistry), async (base) => {
     const state = await json(await call(base, "GET", "/api/state"));
     assert.equal(state.mode, "solo");
     for (const { method, path } of FLOW_ROUTES) {
@@ -125,7 +129,7 @@ test("the solo app has both player and flow routes, and reports solo mode", asyn
 test("the solo app still withholds everyone-else's analytics", async () => {
   // Solo has one learner, who reads their own results via /progress. Not mounting /analytics
   // keeps the roster-wide view exclusive to the educator server.
-  await withServer(createSoloApp(makeService("solo"), null, defaultRegistry), async (base) => {
+  await withServer(createSoloApp(makeService("solo"), null, testRegistry), async (base) => {
     assert.equal((await call(base, "GET", "/api/analytics")).status, 404);
   });
 });
@@ -134,11 +138,11 @@ test("a solo learner can run a whole question cycle with no join", async () => {
   // The end-to-end reason solo exists: pick a module, draw, answer, reveal — no educator, and
   // crucially no join. The participant is seeded, so the fixed token works straight away. This is
   // the regression guard for the stale-token bug: a restart re-seeds, so this never 401s.
-  await withServer(createSoloApp(makeService("solo"), null, defaultRegistry), async (base) => {
+  await withServer(createSoloApp(makeService("solo"), null, testRegistry), async (base) => {
     const post = (path: string, body: unknown) =>
       fetch(`${base}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-    const first = defaultRegistry.catalog()[0]!;
+    const first = testRegistry.catalog()[0]!;
     await post("/api/pool", { moduleIds: [first.id] });
 
     const started = await json(await post("/api/next", {}));
@@ -167,7 +171,7 @@ test("solo seeds the fixed participant; classroom leaves that token inert", () =
 
 test("naming a solo learner relabels the same fixed participant", async () => {
   // /join in solo doesn't mint — it renames the one seeded participant and returns the constant.
-  await withServer(createSoloApp(makeService("solo"), null, defaultRegistry), async (base) => {
+  await withServer(createSoloApp(makeService("solo"), null, testRegistry), async (base) => {
     const res = await json(
       await fetch(`${base}/api/join`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Ada" }) }),
     );
@@ -186,7 +190,7 @@ test("the served document names the mode it was served by", async () => {
   fs.mkdirSync(dist, { recursive: true });
   fs.writeFileSync(`${dist}/index.html`, "<!doctype html><html><head><title>t</title></head><body></body></html>");
 
-  await withServer(createSoloApp(makeService("solo"), dist, defaultRegistry), async (base) => {
+  await withServer(createSoloApp(makeService("solo"), dist, testRegistry), async (base) => {
     const html = await (await fetch(base)).text();
     assert.match(html, /<meta name="edugame-mode" content="solo">/);
   });

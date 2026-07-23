@@ -6,7 +6,7 @@
  * anyone else — a student can only ever read back their own progress, by token.
  */
 
-import { checkName, type Submission } from "@edugame/shared";
+import { checkName, type Submission } from "@philosoph/shared";
 import type { Router } from "express";
 import type { GameService } from "./game-service.js";
 import { HttpError } from "./session.js";

@@ -7,7 +7,7 @@
  *   - `<id>/`          — sidecar graphics referenced by the manifest
  *
  * We read the CSV for answers and the manifest for the questions those answers refer to. The
- * CSV column order is imported from `@edugame/shared`, so a schema change there fails the build
+ * CSV column order is imported from `@philosoph/shared`, so a schema change there fails the build
  * here rather than silently misaligning columns.
  */
 
@@ -20,7 +20,7 @@ import {
   parseSkillsCell,
   type RecordedQuestion,
   type SessionManifest,
-} from "@edugame/shared";
+} from "@philosoph/shared";
 
 export interface LoadedSession {
   id: string;

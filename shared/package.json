@@ -1,5 +1,5 @@
 {
-  "name": "@edugame/shared",
+  "name": "@philosoph/shared",
   "version": "0.1.0",
   "description": "Game-level shared types: live state, WebSocket protocol, analytics, recording, name checks.",
   "license": "PolyForm-Noncommercial-1.0.0",
@@ -24,6 +24,6 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@edugame/module-api": "workspace:*"
+    "@philosoph/module-api": "workspace:*"
   }
 }

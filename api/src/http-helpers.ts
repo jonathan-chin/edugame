@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { GameMode } from "@edugame/shared";
+import type { GameMode } from "@philosoph/shared";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { HttpError } from "./session.js";
 

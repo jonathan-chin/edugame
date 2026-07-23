@@ -3,7 +3,7 @@
  * analytics snapshot and the current vote tally pushed on the educator channel.
  */
 
-import type { AnalyticsSnapshot, PublicGameState, RevealInfo, ServerMessage, VoteTally } from "@edugame/shared";
+import type { AnalyticsSnapshot, PublicGameState, RevealInfo, ServerMessage, VoteTally } from "@philosoph/shared";
 import { useEffect, useState } from "react";
 
 export interface EducatorSocket {

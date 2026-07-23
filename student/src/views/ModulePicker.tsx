@@ -8,7 +8,7 @@
  * educator's picker: no live roster, no anonymize toggle.
  */
 
-import type { ModuleInfo } from "@edugame/shared";
+import type { ModuleInfo } from "@philosoph/shared";
 import {
   IonButton,
   IonCheckbox,

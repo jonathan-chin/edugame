@@ -15,18 +15,19 @@
     "reports"
   ],
   "scripts": {
-    "build:shared": "yarn build:module-api && yarn workspace @edugame/shared build && yarn build:modules",
-    "build:student": "yarn workspace @edugame/student build",
-    "build:educator": "yarn workspace @edugame/educator build",
+    "modules:sync": "node scripts/sync-modules.mjs",
+    "build:shared": "yarn build:module-api && yarn workspace @philosoph/shared build && yarn build:modules",
+    "build:student": "yarn workspace @philosoph/student build",
+    "build:educator": "yarn workspace @philosoph/educator build",
     "build": "yarn build:shared && yarn build:student && yarn build:educator",
     "build:solo": "yarn build:shared && yarn build:student",
     "start": "node scripts/orchestrate.mjs",
     "dev": "node scripts/orchestrate.mjs",
-    "report": "yarn workspace @edugame/reports report",
-    "typecheck": "yarn workspaces foreach -A run typecheck",
-    "build:module-api": "yarn workspace @edugame/module-api build",
-    "build:modules": "yarn workspace @edugame/modules build",
-    "test": "yarn workspace @edugame/api test"
+    "report": "yarn modules:sync && yarn workspace @philosoph/reports report",
+    "typecheck": "yarn modules:sync && yarn workspaces foreach -A run typecheck",
+    "build:module-api": "yarn workspace @philosoph/module-api build",
+    "build:modules": "yarn workspace @philosoph/modules build",
+    "test": "yarn workspace @philosoph/api test"
   },
   "dependencies": {
     "@ngrok/ngrok": "^1.4.1"

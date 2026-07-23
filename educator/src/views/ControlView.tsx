@@ -4,7 +4,7 @@
  * the current question with its vote distribution.
  */
 
-import type { PublicGameState, RevealInfo, VoteTally } from "@edugame/shared";
+import type { PublicGameState, RevealInfo, VoteTally } from "@philosoph/shared";
 import { IonButton, IonIcon, IonInput, IonSpinner } from "@ionic/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { checkmarkCircle, eyeOutline, layersOutline, openOutline, playForwardOutline, playSkipForwardOutline, timerOutline } from "ionicons/icons";

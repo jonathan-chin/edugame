@@ -1,5 +1,5 @@
 {
-  "name": "@edugame/reports",
+  "name": "@philosoph/reports",
   "version": "0.1.0",
   "description": "Command-line report generator: turns recorded session data into per-student and whole-class PDF summaries and a self-contained dashboard.",
   "license": "PolyForm-Noncommercial-1.0.0",
@@ -9,9 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@edugame/modules": "workspace:*",
-    "@edugame/shared": "workspace:*",
     "@inquirer/prompts": "^7.2.1",
+    "@philosoph/shared": "workspace:*",
     "puppeteer": "^24.0.0"
   },
   "devDependencies": {

@@ -1,14 +1,15 @@
-# @edugame/modules
+# @philosoph/modules
 
 The stock question modules. A module is a plugin: it generates questions, grades them, and says
-what to reveal. It depends only on `@edugame/module-api`, and nothing in the game engine knows any
+what to reveal. It depends only on `@philosoph/module-api`, and nothing in the game engine knows any
 module exists.
 
 ## Writing one
 
-Start by copying [`src/template.ts`](src/template.ts) — a complete, working, heavily commented
-module. It is compiled and type-checked with this package (so it cannot rot), but is deliberately
-left out of the manifest, so it never shows up in the educator's picker.
+Start by copying the shipped example, `@philosoph/module-api/example`
+([`module-api/src/example.ts`](../module-api/src/example.ts)) — a complete, working, heavily
+commented module. It is compiled and type-checked with the contract (so it cannot rot), but kept
+out of the barrel, so it never lands in a real registry unless you import it on purpose.
 
 A module is one object:
 
@@ -28,7 +29,7 @@ Then add it to the manifest in [`src/index.ts`](src/index.ts) so it ships with t
 it out and have an application compose its own registry:
 
 ```ts
-import { createRegistry } from "@edugame/module-api";
+import { createRegistry } from "@philosoph/module-api";
 const registry = createRegistry([myModule]);
 new GameSession(id, seed, registry);
 ```
@@ -68,9 +69,9 @@ real work, not the types.
 
 | Package | Holds | Depends on |
 | --- | --- | --- |
-| `@edugame/module-api` | the contract: content, RNG, question/answer types, `QuestionModule`, registry | nothing |
-| `@edugame/modules` | these modules, plus their private chart/stat helpers | the contract |
-| `@edugame/shared` | game-level state, WebSocket protocol, analytics, recording | the contract |
+| `@philosoph/module-api` | the contract: content, RNG, question/answer types, `QuestionModule`, registry | nothing |
+| `@philosoph/modules` | these modules, plus their private chart/stat helpers | the contract |
+| `@philosoph/shared` | game-level state, WebSocket protocol, analytics, recording | the contract |
 
 Helpers used by only one module stay private to this package (`svg.ts`, `distributions.ts`,
 `stats.ts` are here for exactly that reason). Don't add them to the contract — it stays slim so a

@@ -5,7 +5,7 @@
  * part of the query key), so the history grows live.
  */
 
-import type { StudentHistoryItem, StudentProgress } from "@edugame/shared";
+import type { StudentHistoryItem, StudentProgress } from "@philosoph/shared";
 import { IonList, IonListHeader, IonSpinner, IonText } from "@ionic/react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";

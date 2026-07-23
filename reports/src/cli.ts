@@ -19,7 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { select } from "@inquirer/prompts";
-import type { GameMode } from "@edugame/shared";
+import type { GameMode } from "@philosoph/shared";
 import { buildModel } from "./aggregate.js";
 import { humanDate, humanSize, reportDirName, reportFilename } from "./format.js";
 import { htmlToPdf, closePdf } from "./pdf.js";

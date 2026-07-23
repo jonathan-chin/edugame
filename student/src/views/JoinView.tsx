@@ -6,7 +6,7 @@
  * Hook Form with `Controller` rather than `register`.
  */
 
-import { checkName, type NameCheck } from "@edugame/shared";
+import { checkName, type NameCheck } from "@philosoph/shared";
 import {
   IonButton,
   IonButtons,

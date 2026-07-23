@@ -8,7 +8,7 @@
  * which is what keeps a stale question from a previous class out of today's history.
  */
 
-import type { AnswerOption, Content, QuestionInstance } from "@edugame/shared";
+import type { AnswerOption, Content, QuestionInstance } from "@philosoph/shared";
 
 const KEY = "edugame_questions_v1";
 /** A chart SVG runs ~4 KB, so this holds a very long session well inside the ~5 MB quota. */

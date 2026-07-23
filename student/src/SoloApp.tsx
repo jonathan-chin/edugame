@@ -13,7 +13,7 @@
  * server does not.
  */
 
-import { checkName, SOLO_STUDENT_TOKEN } from "@edugame/shared";
+import { checkName, SOLO_STUDENT_TOKEN } from "@philosoph/shared";
 import {
   IonButton,
   IonCard,

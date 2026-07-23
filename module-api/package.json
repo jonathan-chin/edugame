@@ -1,5 +1,5 @@
 {
-  "name": "@edugame/module-api",
+  "name": "@philosoph/module-api",
   "version": "0.1.0",
   "description": "The question-module contract: everything a module author needs, and nothing about the game.",
   "license": "PolyForm-Noncommercial-1.0.0",
@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./example": {
+      "types": "./dist/example.d.ts",
+      "default": "./dist/example.js"
     }
   },
   "files": [

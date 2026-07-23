@@ -4,7 +4,7 @@
  * user input). Inline injection lets the SVG's CSS-variable colors adopt the app theme.
  */
 
-import type { Content } from "@edugame/shared";
+import type { Content } from "@philosoph/shared";
 
 export function ContentView({ content }: { content: Content }) {
   switch (content.kind) {

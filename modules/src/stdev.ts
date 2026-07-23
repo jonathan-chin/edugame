@@ -7,7 +7,7 @@
  *   - "Numerical literacy": compare four distributions and pick the largest/smallest σ.
  */
 
-import { gradeStandardAnswer, revealStandardAnswer, svg, text, type AnswerOption, type GeneratedQuestion, type QuestionModule, type RNG } from "@edugame/module-api";
+import { gradeStandardAnswer, revealStandardAnswer, svg, text, type AnswerOption, type GeneratedQuestion, type QuestionModule, type RNG } from "@philosoph/module-api";
 import { BELL_DOMAIN, makeDistribution, SPREAD_LEGIBLE_FAMILIES, UNIMODAL_FAMILIES } from "./distributions.js";
 import { round, STDEV_CATEGORIES } from "./stats.js";
 import { densitySvg } from "./svg.js";

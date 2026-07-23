@@ -5,7 +5,7 @@
  * interstitial on API responses (a concern we flagged up front).
  */
 
-import type { ModuleInfo, PublicGameState, StudentProgress, Submission } from "@edugame/shared";
+import type { ModuleInfo, PublicGameState, StudentProgress, Submission } from "@philosoph/shared";
 
 const HEADERS = {
   "Content-Type": "application/json",

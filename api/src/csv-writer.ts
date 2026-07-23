@@ -19,7 +19,7 @@ import {
   type RecordedContent,
   type RecordedQuestion,
   type SessionManifest,
-} from "@edugame/shared";
+} from "@philosoph/shared";
 
 /** Keep filenames to a safe, predictable character set. */
 const safe = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, "_");

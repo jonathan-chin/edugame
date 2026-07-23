@@ -6,7 +6,7 @@
  * inlines the sidecar graphics.
  */
 
-import type { RecordedContent } from "@edugame/shared";
+import type { RecordedContent } from "@philosoph/shared";
 
 /** A short readable label for a content node; undefined for a purely graphic node. */
 export function recordedText(content: RecordedContent): string | undefined {

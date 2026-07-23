@@ -5,7 +5,7 @@
  *   - votes/analytics -> educator only (kept off the public channel)
  */
 
-import { type GameMode, type PublicGameState, type ServerMessage, SOLO_STUDENT_DEFAULT_NAME, SOLO_STUDENT_TOKEN } from "@edugame/shared";
+import { type GameMode, type PublicGameState, type ServerMessage, SOLO_STUDENT_DEFAULT_NAME, SOLO_STUDENT_TOKEN } from "@philosoph/shared";
 import type { SessionWriter } from "./csv-writer.js";
 import type { Hub } from "./hub.js";
 import type { GameSession } from "./session.js";

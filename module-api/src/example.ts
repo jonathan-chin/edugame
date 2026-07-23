@@ -1,9 +1,9 @@
 /**
- * A complete, working question module, kept as the reference to copy when writing a new one.
+ * A complete, working question module — the reference to copy when writing a new one.
  *
- * It is compiled and type-checked with the rest of this package — so it cannot silently rot — but
- * it is deliberately **not** in the manifest in `index.ts`, so it never appears in the educator's
- * module picker. To use it for real, add it to a registry (see the README).
+ * It ships with the contract (importable as `@philosoph/module-api/example`) and is compiled and
+ * type-checked with the package, so it cannot silently rot. It is *not* re-exported from the main
+ * entry, so it never sneaks into a real registry by accident; to use it, import it explicitly.
  *
  * The module it implements is trivial on purpose: "which of these is a power of two". The point is
  * the shape and the constraints, not the subject.
@@ -17,11 +17,11 @@ import {
   type GeneratedQuestion,
   type QuestionModule,
   type RNG,
-} from "@edugame/module-api";
+} from "./index.js";
 
 /** Ids are the stable key for a module: they appear in saved CSVs and manifests, so changing one
  *  orphans every answer already recorded against it. Choose it once. */
-const MODULE_ID = "template-powers-of-two";
+const MODULE_ID = "example-powers-of-two";
 
 /**
  * Sub-skills this module can tag a question with. These strings are what the analytics and the
@@ -60,7 +60,7 @@ function generate(rng: RNG): GeneratedQuestion {
   return {
     public: {
       // `rng.id` keeps question ids deterministic as well; they key the recorded manifest.
-      id: rng.id("tpl"),
+      id: rng.id("ex"),
       moduleId: MODULE_ID,
       skills: [SKILL_RECOGNITION], // zero or more; each answer counts toward every skill listed
       difficulty: 1, // 1 (easiest) .. 5 (hardest)
@@ -73,15 +73,16 @@ function generate(rng: RNG): GeneratedQuestion {
   };
 }
 
-export const templateModule: QuestionModule = {
+/** The reference module. Import it explicitly — it is intentionally not part of the barrel. */
+export const exampleModule: QuestionModule = {
   id: MODULE_ID,
-  title: "Template · powers of two", // shown in the educator's module picker
-  shortTitle: "Template", // compact label for analytics and report charts
+  title: "Example · powers of two", // shown in an educator's module picker
+  shortTitle: "Example", // compact label for analytics and report charts
   description: "A reference module for developers — not real course content.",
   generate,
 
   // Grading and reveal belong to the module, which is what lets a module define correctness its
-  // own way. These two questions use the standard shape, so they wire in the stock helpers.
+  // own way. These questions use the standard shape, so they wire in the stock helpers.
   //
   // To accept more than one correct option, or to grade with a tolerance, replace them with your
   // own — the engine never inspects a key, it only calls these:

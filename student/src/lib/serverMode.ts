@@ -15,7 +15,7 @@
  * the shell that grants nothing.
  */
 
-import type { GameMode } from "@edugame/shared";
+import type { GameMode } from "@philosoph/shared";
 
 export function readServerMode(): GameMode {
   const content = document.querySelector('meta[name="edugame-mode"]')?.getAttribute("content");

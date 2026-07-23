@@ -121,6 +121,11 @@ function postLink(url, port) {
 }
 
 async function main() {
+  // Discover installed question-module packages and regenerate the composed registry before
+  // anything runs — so `yarn dev` picks up a newly-added module package without a manual step.
+  // Runs even with --skip-build, since the generated file feeds the API server, not the bundles.
+  await runToCompletion("node", ["scripts/sync-modules.mjs"], { cwd: ROOT });
+
   if (!skipBuild) {
     // Solo never serves the educator app, so don't spend the time building it.
     console.log(`[orchestrate] building shared + ${solo ? "student bundle" : "client bundles"}…`);
@@ -141,7 +146,7 @@ async function main() {
   if (educatorPort !== EDUCATOR_PORT) console.log(`[orchestrate] educator port ${EDUCATOR_PORT} in use → using ${educatorPort}`);
 
   console.log("[orchestrate] starting API…");
-  const api = run("yarn", ["workspace", "@edugame/api", "start"], {
+  const api = run("yarn", ["workspace", "@philosoph/api", "start"], {
     cwd: ROOT,
     env: {
       ...process.env,
@@ -202,7 +207,7 @@ async function startSolo() {
   if (port !== SOLO_PORT) console.log(`[orchestrate] port ${SOLO_PORT} in use → using ${port}`);
 
   console.log("[orchestrate] starting solo study session…");
-  const api = run("yarn", ["workspace", "@edugame/api", "start"], {
+  const api = run("yarn", ["workspace", "@philosoph/api", "start"], {
     cwd: ROOT,
     env: {
       ...process.env,

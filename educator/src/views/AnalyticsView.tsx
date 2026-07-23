@@ -5,7 +5,7 @@
  * real names.
  */
 
-import type { AnalyticsSnapshot, GroupStat } from "@edugame/shared";
+import type { AnalyticsSnapshot, GroupStat } from "@philosoph/shared";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { AnonToggle } from "../components/AnonToggle";

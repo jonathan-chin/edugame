@@ -12,7 +12,7 @@
  * which server mounts this router.
  */
 
-import type { ModuleRegistry } from "@edugame/shared";
+import type { ModuleRegistry } from "@philosoph/shared";
 import type { Router } from "express";
 import type { GameService } from "./game-service.js";
 

@@ -8,7 +8,7 @@
  * `defaultRegistry` is the stock set used by the game and the report generator.
  */
 
-import { createRegistry, type ModuleRegistry, type QuestionModule } from "@edugame/module-api";
+import { createRegistry, type ModuleRegistry, type QuestionModule } from "@philosoph/module-api";
 import { boxplotModule } from "./boxplot.js";
 import { COURSE_VOCAB_MODULES } from "./course-vocab.js";
 import { stdevModule } from "./stdev.js";

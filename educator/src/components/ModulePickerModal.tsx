@@ -11,7 +11,7 @@
  * "Start game" is disabled until something is selected, so nothing here needs to second-guess it.
  */
 
-import type { ModuleInfo } from "@edugame/shared";
+import type { ModuleInfo } from "@philosoph/shared";
 import {
   IonButton,
   IonButtons,

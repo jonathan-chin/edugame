@@ -18,9 +18,10 @@
 
 import { randomUUID } from "node:crypto";
 import http from "node:http";
+import { createRegistry } from "@philosoph/module-api";
 import { loadConfig } from "./config.js";
 import { createEducatorApp } from "./educator-app.js";
-import { defaultRegistry } from "@edugame/modules";
+import { installedModules } from "./generated/installed-modules.js";
 import { GameService, type SessionBundle } from "./game-service.js";
 import { Hub } from "./hub.js";
 import { SessionWriter } from "./csv-writer.js";
@@ -29,6 +30,11 @@ import { createSoloApp } from "./solo-app.js";
 import { createStudentApp } from "./student-app.js";
 
 const config = loadConfig();
+
+// The question modules come from whatever module packages are installed, discovered and composed
+// by `yarn modules:sync` into `installedModules`. The engine itself knows about no specific
+// content; with no module package installed this registry is simply empty.
+const registry = createRegistry(installedModules);
 
 // Mint a fresh session + its files. The first game uses the configured id/seed (which may be
 // a fixed reproducibility seed from the CLI); each later reset() gets a new id + seed, so
@@ -39,7 +45,7 @@ function newSession(): SessionBundle {
   const seed = firstSession ? config.seed : randomUUID();
   firstSession = false;
   return {
-    session: new GameSession(sessionId, seed, defaultRegistry),
+    session: new GameSession(sessionId, seed, registry),
     writer: new SessionWriter(config.sessionsDir, sessionId),
   };
 }
@@ -66,7 +72,7 @@ let servers: http.Server[];
 if (config.solo) {
   // One learner, one loopback-only listener. Note the bind address is a literal here, not a
   // variable — solo mode has no code path that can reach a public interface.
-  const soloServer = http.createServer(createSoloApp(service, config.studentDist, defaultRegistry));
+  const soloServer = http.createServer(createSoloApp(service, config.studentDist, registry));
   const soloHub = new Hub(soloServer, () => service.helloStudent(), service.markSeen);
   service.attachHubs(soloHub, null); // no educator channel exists in solo
   soloServer.on("error", onServerError("solo", config.studentPort));
@@ -76,7 +82,7 @@ if (config.solo) {
   servers = [soloServer];
 } else {
   const studentServer = http.createServer(createStudentApp(service, config.studentDist));
-  const educatorServer = http.createServer(createEducatorApp(service, config.educatorDist, defaultRegistry));
+  const educatorServer = http.createServer(createEducatorApp(service, config.educatorDist, registry));
 
   const studentHub = new Hub(studentServer, () => service.helloStudent(), service.markSeen);
   const educatorHub = new Hub(educatorServer, () => service.helloEducator());

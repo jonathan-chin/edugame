@@ -31,7 +31,7 @@ import {
   type Submission,
   submissionToString,
   type VoteTally,
-} from "@edugame/shared";
+} from "@philosoph/shared";
 
 interface StudentRecord {
   token: string;

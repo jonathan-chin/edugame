@@ -3,7 +3,7 @@
  * URL is empty. These endpoints are never exposed to the internet.
  */
 
-import type { AnalyticsSnapshot, ModuleInfo, PublicGameState, SessionManifest } from "@edugame/shared";
+import type { AnalyticsSnapshot, ModuleInfo, PublicGameState, SessionManifest } from "@philosoph/shared";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {

@@ -73,7 +73,7 @@ and **the engine knows nothing about any of it**. `GameSession` is handed a regi
 importing one, so the core has no opinion about which modules exist:
 
 ```ts
-import { createRegistry } from "@edugame/module-api";
+import { createRegistry } from "@philosoph/module-api";
 const registry = createRegistry([myModule]);
 new GameSession(id, seed, registry);
 ```
@@ -95,9 +95,10 @@ knowing up front: **all randomness must come from the injected `rng`** (a sessio
 seed), and every question is **multiple-choice** for now, since a browser client can only collect
 an interaction it has a widget for.
 
-**Start from [`modules/src/template.ts`](modules/src/template.ts)** — a complete, working, commented
-module, compiled and type-checked with the package but deliberately left out of the manifest so it
-never appears in the picker. [`modules/README.md`](modules/README.md) has the full guide: the rules
+**Start from the shipped example** — [`module-api/src/example.ts`](module-api/src/example.ts),
+importable as `@philosoph/module-api/example`. It's a complete, working, commented module, compiled
+and type-checked with the contract so it can't rot, but kept out of the barrel so it never lands in
+a real registry by accident. [`modules/README.md`](modules/README.md) has the full guide: the rules
 that matter, how to register, and what to assert when checking your own module.
 
 ## Solo study
@@ -199,12 +200,12 @@ them: with a single learner there is no class to report on and nothing to be ran
 ## Development
 
 ```bash
-yarn workspace @edugame/module-api dev  # tsc --watch (the contract)
-yarn workspace @edugame/modules dev     # tsc --watch (the question modules)
-yarn workspace @edugame/shared dev      # tsc --watch
-yarn workspace @edugame/api dev         # tsx watch (STUDENT_DIST/EDUCATOR_DIST optional)
-yarn workspace @edugame/student dev     # Vite dev server (proxies /api + /ws to :4000)
-yarn workspace @edugame/educator dev    # Vite dev server (proxies to :4100)
+yarn workspace @philosoph/module-api dev  # tsc --watch (the contract)
+yarn workspace @philosoph/modules dev     # tsc --watch (the question modules)
+yarn workspace @philosoph/shared dev      # tsc --watch
+yarn workspace @philosoph/api dev         # tsx watch (STUDENT_DIST/EDUCATOR_DIST optional)
+yarn workspace @philosoph/student dev     # Vite dev server (proxies /api + /ws to :4000)
+yarn workspace @philosoph/educator dev    # Vite dev server (proxies to :4100)
 yarn typecheck                          # typecheck all workspaces
 yarn test                               # API route-surface tests (what each server exposes)
 yarn report                             # generate PDF reports from recorded sessions

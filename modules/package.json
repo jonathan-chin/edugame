@@ -1,5 +1,5 @@
 {
-  "name": "@edugame/modules",
+  "name": "@philosoph/modules",
   "version": "0.1.0",
   "description": "The stock question modules. Plugins: they depend on the module API, and nothing depends on them except an application composing a registry.",
   "license": "PolyForm-Noncommercial-1.0.0",
@@ -21,9 +21,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@edugame/module-api": "workspace:*"
+    "@philosoph/module-api": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
-  }
+  },
+  "keywords": [
+    "philosoph-question-modules"
+  ]
 }

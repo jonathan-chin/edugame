@@ -8,7 +8,7 @@
  * anything in this file — it is that this app only ever listens on 127.0.0.1.
  */
 
-import type { ModuleRegistry } from "@edugame/shared";
+import type { ModuleRegistry } from "@philosoph/shared";
 import cors from "cors";
 import express, { type Express } from "express";
 import QRCode from "qrcode";

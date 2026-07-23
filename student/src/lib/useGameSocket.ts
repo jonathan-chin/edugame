@@ -4,7 +4,7 @@
  * its own. Same-origin: ws(s)://<this host>/ws.
  */
 
-import type { PublicGameState, RevealInfo, ServerMessage } from "@edugame/shared";
+import type { PublicGameState, RevealInfo, ServerMessage } from "@philosoph/shared";
 import { useEffect, useRef, useState } from "react";
 import { SESSION_INVALID_EVENT } from "./api";
 

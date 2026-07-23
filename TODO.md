@@ -48,11 +48,11 @@ references a specific module either.
    `shared/src/modules/index.ts` is a manifest whose only job is naming the stock list. An
    application composes the registry (`api/src/main.ts`, `reports/src/aggregate.ts`); the engine
    has no opinion about which modules exist.
-3. ~~**Modules live inside `shared/`**~~ **Done.** Three packages now: `@edugame/module-api` (the
-   contract, zero dependencies), `@edugame/modules` (the plugins, depending only on the contract),
-   and `@edugame/shared` (game-level state/analytics/recording, which re-exports the contract but
+3. ~~**Modules live inside `shared/`**~~ **Done.** Three packages now: `@philosoph/module-api` (the
+   contract, zero dependencies), `@philosoph/modules` (the plugins, depending only on the contract),
+   and `@philosoph/shared` (game-level state/analytics/recording, which re-exports the contract but
    names no module). Applications compose: only `api/src/main.ts` and `reports/src/aggregate.ts`
-   import `@edugame/modules`.
+   import `@philosoph/modules`.
 
 **Planned phases:**
 - *Phase 1 — tighten the contract.* **Done.** `registry.ts` holds the lookup contract and a
@@ -66,7 +66,7 @@ references a specific module either.
   `stats`) turned out to be used only by the chart modules, so they travelled with them rather than
   bloating the contract.
 
-**All three phases are complete.** What a new module now needs: depend on `@edugame/module-api`,
+**All three phases are complete.** What a new module now needs: depend on `@philosoph/module-api`,
 export a `QuestionModule`, and have an application add it to a registry. Nothing in the core changes.
 
 **Remaining caveat:** the boundary is *declared* (via package dependencies) rather than hard-enforced,

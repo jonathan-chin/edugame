@@ -9,7 +9,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import type { RecordedContent, RecordedQuestion } from "@edugame/shared";
+import type { RecordedContent, RecordedQuestion } from "@philosoph/shared";
 import type { ClassDistribution, ClassReport, Group, QuestionResult, StudentAnswer, StudentReport } from "./aggregate.js";
 import { humanDate } from "./format.js";
 

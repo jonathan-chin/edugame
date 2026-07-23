@@ -5,7 +5,7 @@
  */
 
 import type { Server } from "node:http";
-import { type ClientMessage, type ServerMessage, WS_PATH } from "@edugame/shared";
+import { type ClientMessage, type ServerMessage, WS_PATH } from "@philosoph/shared";
 import { WebSocket, WebSocketServer } from "ws";
 
 export class Hub {

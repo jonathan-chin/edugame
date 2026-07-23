@@ -22,7 +22,7 @@
  * → misconceptions, "difference between X and Y" → contrasts, examples → analogies).
  */
 
-import { gradeStandardAnswer, revealStandardAnswer, text, type AnswerOption, type GeneratedQuestion, type QuestionModule, type RNG } from "@edugame/module-api";
+import { gradeStandardAnswer, revealStandardAnswer, text, type AnswerOption, type GeneratedQuestion, type QuestionModule, type RNG } from "@philosoph/module-api";
 
 type Level = "beginner" | "advanced";
 

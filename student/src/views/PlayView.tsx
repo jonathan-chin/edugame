@@ -9,7 +9,7 @@
  * `onAnswered`, which also stops the timer). No take-backs, because there's no one to wait for.
  */
 
-import type { PublicGameState, RevealInfo } from "@edugame/shared";
+import type { PublicGameState, RevealInfo } from "@philosoph/shared";
 import { IonButton, IonSpinner, IonText, IonToast } from "@ionic/react";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";

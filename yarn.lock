@@ -216,105 +216,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@edugame/api@workspace:api":
-  version: 0.0.0-use.local
-  resolution: "@edugame/api@workspace:api"
-  dependencies:
-    "@edugame/modules": "workspace:*"
-    "@edugame/shared": "workspace:*"
-    "@types/cors": "npm:^2.8.17"
-    "@types/express": "npm:^4.17.21"
-    "@types/node": "npm:^22.10.2"
-    "@types/qrcode": "npm:^1.5.5"
-    "@types/ws": "npm:^8.5.13"
-    cors: "npm:^2.8.5"
-    express: "npm:^4.21.2"
-    qrcode: "npm:^1.5.4"
-    tsx: "npm:^4.19.2"
-    typescript: "npm:^5.7.2"
-    ws: "npm:^8.18.0"
-  languageName: unknown
-  linkType: soft
-
-"@edugame/educator@workspace:educator":
-  version: 0.0.0-use.local
-  resolution: "@edugame/educator@workspace:educator"
-  dependencies:
-    "@edugame/shared": "workspace:*"
-    "@ionic/react": "npm:^8.4.1"
-    "@tanstack/react-query": "npm:^5.62.7"
-    "@types/react": "npm:^18.3.17"
-    "@types/react-dom": "npm:^18.3.5"
-    "@vitejs/plugin-react": "npm:^4.3.4"
-    ionicons: "npm:^7.4.0"
-    react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
-    react-hook-form: "npm:^7.54.2"
-    recharts: "npm:^2.15.0"
-    typescript: "npm:^5.7.2"
-    vite: "npm:^6.0.5"
-  languageName: unknown
-  linkType: soft
-
-"@edugame/module-api@workspace:*, @edugame/module-api@workspace:module-api":
-  version: 0.0.0-use.local
-  resolution: "@edugame/module-api@workspace:module-api"
-  dependencies:
-    typescript: "npm:^5.7.2"
-  languageName: unknown
-  linkType: soft
-
-"@edugame/modules@workspace:*, @edugame/modules@workspace:modules":
-  version: 0.0.0-use.local
-  resolution: "@edugame/modules@workspace:modules"
-  dependencies:
-    "@edugame/module-api": "workspace:*"
-    typescript: "npm:^5.7.2"
-  languageName: unknown
-  linkType: soft
-
-"@edugame/reports@workspace:reports":
-  version: 0.0.0-use.local
-  resolution: "@edugame/reports@workspace:reports"
-  dependencies:
-    "@edugame/modules": "workspace:*"
-    "@edugame/shared": "workspace:*"
-    "@inquirer/prompts": "npm:^7.2.1"
-    "@types/node": "npm:^22.10.2"
-    puppeteer: "npm:^24.0.0"
-    tsx: "npm:^4.19.2"
-    typescript: "npm:^5.7.2"
-  languageName: unknown
-  linkType: soft
-
-"@edugame/shared@workspace:*, @edugame/shared@workspace:shared":
-  version: 0.0.0-use.local
-  resolution: "@edugame/shared@workspace:shared"
-  dependencies:
-    "@edugame/module-api": "workspace:*"
-    typescript: "npm:^5.7.2"
-  languageName: unknown
-  linkType: soft
-
-"@edugame/student@workspace:student":
-  version: 0.0.0-use.local
-  resolution: "@edugame/student@workspace:student"
-  dependencies:
-    "@edugame/shared": "workspace:*"
-    "@ionic/react": "npm:^8.4.1"
-    "@tanstack/react-query": "npm:^5.62.7"
-    "@types/react": "npm:^18.3.17"
-    "@types/react-dom": "npm:^18.3.5"
-    "@vitejs/plugin-react": "npm:^4.3.4"
-    ionicons: "npm:^7.4.0"
-    react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
-    react-hook-form: "npm:^7.54.2"
-    typescript: "npm:^5.7.2"
-    vite: "npm:^6.0.5"
-  languageName: unknown
-  linkType: soft
-
 "@esbuild/aix-ppc64@npm:0.25.12":
   version: 0.25.12
   resolution: "@esbuild/aix-ppc64@npm:0.25.12"
@@ -1142,6 +1043,103 @@ __metadata:
   checksum: 10c0/67ad258efd5797bb1bcbe75344d6fa930eab69ac7c6d72c4d9ed1e507c2e2953f5e856d803d23eeec22227adeb66f959982709dc0c73d3cb76630ac450980a06
   languageName: node
   linkType: hard
+
+"@philosoph/api@workspace:api":
+  version: 0.0.0-use.local
+  resolution: "@philosoph/api@workspace:api"
+  dependencies:
+    "@philosoph/shared": "workspace:*"
+    "@types/cors": "npm:^2.8.17"
+    "@types/express": "npm:^4.17.21"
+    "@types/node": "npm:^22.10.2"
+    "@types/qrcode": "npm:^1.5.5"
+    "@types/ws": "npm:^8.5.13"
+    cors: "npm:^2.8.5"
+    express: "npm:^4.21.2"
+    qrcode: "npm:^1.5.4"
+    tsx: "npm:^4.19.2"
+    typescript: "npm:^5.7.2"
+    ws: "npm:^8.18.0"
+  languageName: unknown
+  linkType: soft
+
+"@philosoph/educator@workspace:educator":
+  version: 0.0.0-use.local
+  resolution: "@philosoph/educator@workspace:educator"
+  dependencies:
+    "@ionic/react": "npm:^8.4.1"
+    "@philosoph/shared": "workspace:*"
+    "@tanstack/react-query": "npm:^5.62.7"
+    "@types/react": "npm:^18.3.17"
+    "@types/react-dom": "npm:^18.3.5"
+    "@vitejs/plugin-react": "npm:^4.3.4"
+    ionicons: "npm:^7.4.0"
+    react: "npm:^18.3.1"
+    react-dom: "npm:^18.3.1"
+    react-hook-form: "npm:^7.54.2"
+    recharts: "npm:^2.15.0"
+    typescript: "npm:^5.7.2"
+    vite: "npm:^6.0.5"
+  languageName: unknown
+  linkType: soft
+
+"@philosoph/module-api@workspace:*, @philosoph/module-api@workspace:module-api":
+  version: 0.0.0-use.local
+  resolution: "@philosoph/module-api@workspace:module-api"
+  dependencies:
+    typescript: "npm:^5.7.2"
+  languageName: unknown
+  linkType: soft
+
+"@philosoph/modules@workspace:modules":
+  version: 0.0.0-use.local
+  resolution: "@philosoph/modules@workspace:modules"
+  dependencies:
+    "@philosoph/module-api": "workspace:*"
+    typescript: "npm:^5.7.2"
+  languageName: unknown
+  linkType: soft
+
+"@philosoph/reports@workspace:reports":
+  version: 0.0.0-use.local
+  resolution: "@philosoph/reports@workspace:reports"
+  dependencies:
+    "@inquirer/prompts": "npm:^7.2.1"
+    "@philosoph/shared": "workspace:*"
+    "@types/node": "npm:^22.10.2"
+    puppeteer: "npm:^24.0.0"
+    tsx: "npm:^4.19.2"
+    typescript: "npm:^5.7.2"
+  languageName: unknown
+  linkType: soft
+
+"@philosoph/shared@workspace:*, @philosoph/shared@workspace:shared":
+  version: 0.0.0-use.local
+  resolution: "@philosoph/shared@workspace:shared"
+  dependencies:
+    "@philosoph/module-api": "workspace:*"
+    typescript: "npm:^5.7.2"
+  languageName: unknown
+  linkType: soft
+
+"@philosoph/student@workspace:student":
+  version: 0.0.0-use.local
+  resolution: "@philosoph/student@workspace:student"
+  dependencies:
+    "@ionic/react": "npm:^8.4.1"
+    "@philosoph/shared": "workspace:*"
+    "@tanstack/react-query": "npm:^5.62.7"
+    "@types/react": "npm:^18.3.17"
+    "@types/react-dom": "npm:^18.3.5"
+    "@vitejs/plugin-react": "npm:^4.3.4"
+    ionicons: "npm:^7.4.0"
+    react: "npm:^18.3.1"
+    react-dom: "npm:^18.3.1"
+    react-hook-form: "npm:^7.54.2"
+    typescript: "npm:^5.7.2"
+    vite: "npm:^6.0.5"
+  languageName: unknown
+  linkType: soft
 
 "@puppeteer/browsers@npm:2.13.2":
   version: 2.13.2

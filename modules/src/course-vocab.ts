@@ -49,7 +49,7 @@
  * instead: shared UI components vs. access to native device features.
  */
 
-import { type QuestionModule } from "@edugame/module-api";
+import { type QuestionModule } from "@philosoph/module-api";
 import { makeVocabModule, type VocabAtom } from "./vocab.js";
 
 // ---------------------------------------------------------------------------

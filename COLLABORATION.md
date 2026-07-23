@@ -1499,7 +1499,7 @@ building; the decisions:
   bundled-Chromium download is exactly what a locked-down (e.g. university) network blocks, and the
   fallback renders off installed Chrome.
 
-**AI implementation:** a new `@edugame/reports` workspace (`yarn report`) — session scanner/parser
+**AI implementation:** a new `@philosoph/reports` workspace (`yarn report`) — session scanner/parser
 (CSV + manifest + assets), per-session name maps, aggregation (class + per-student, by
 module/skill/difficulty, per-question), HTML render, Puppeteer PDF. Output goes to the gitignored
 `reports/out/<range>/`, one folder per run; a re-run clears its folder first so a stale per-student
@@ -1542,7 +1542,7 @@ core. Secondary: the registry is a hand-maintained switchboard, and modules live
 
 The human chose to **pause** the refactor and record it. Added a TODO.md section with the finding,
 the three real blockers, a three-phase plan (tighten the contract → move grading/reveal into the
-module → extract a `@edugame/module-api` and relocate modules), and the constraint that this code
+module → extract a `@philosoph/module-api` and relocate modules), and the constraint that this code
 ships to browsers, so "plugin" means a clean contract plus one registration point rather than
 runtime loading.
 
@@ -1636,10 +1636,10 @@ showed the correct answer highlighted green.
 The final stage split one package into three, so the plugin boundary is structural rather than a
 convention.
 
-**AI implementation:** `@edugame/module-api` holds the contract — content nodes, the seeded RNG, the
+**AI implementation:** `@philosoph/module-api` holds the contract — content nodes, the seeded RNG, the
 question/answer types, the module interface and the registry factory — and depends on nothing at
-all. `@edugame/modules` holds the stock modules and depends only on the contract.
-`@edugame/shared` keeps the game-level types (live state, WebSocket protocol, analytics, recording,
+all. `@philosoph/modules` holds the stock modules and depends only on the contract.
+`@philosoph/shared` keeps the game-level types (live state, WebSocket protocol, analytics, recording,
 name checks), depends on the contract and re-exports it so app imports were untouched, and names no
 module anywhere. Composition moved to the two applications that actually pick a module list:
 `api/src/main.ts` and `reports/src/aggregate.ts`.
@@ -1650,8 +1650,8 @@ utilities but proved to be used *only* by the chart modules — the apparent app
 which is what kept `module-api` genuinely slim.
 
 **Verified:** the contract package imports no workspace package and declares no dependencies;
-`shared` never mentions a module; `modules` imports only `@edugame/module-api`; and the sole
-`@edugame/modules` import in the API is the composition root, not the engine. Full typecheck and
+`shared` never mentions a module; `modules` imports only `@philosoph/module-api`; and the sole
+`@philosoph/modules` import in the API is the composition root, not the engine. Full typecheck and
 build clean, a live game played three questions across two modules with correct grading and label
 resolution, and the report generator produced its usual figures.
 

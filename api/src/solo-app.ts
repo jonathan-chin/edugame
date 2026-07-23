@@ -18,7 +18,7 @@
  *     for one person. Ending the session is handled on process shutdown.
  */
 
-import type { ModuleRegistry } from "@edugame/shared";
+import type { ModuleRegistry } from "@philosoph/shared";
 import cors from "cors";
 import express, { type Express } from "express";
 import { mountFlowRoutes } from "./flow-routes.js";

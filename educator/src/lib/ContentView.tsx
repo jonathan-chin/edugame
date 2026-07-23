@@ -3,7 +3,7 @@
  * injected inline (no scripts, trusted generators). Mirror of the student app's ContentView.
  */
 
-import type { Content } from "@edugame/shared";
+import type { Content } from "@philosoph/shared";
 
 export function ContentView({ content }: { content: Content }) {
   switch (content.kind) {
