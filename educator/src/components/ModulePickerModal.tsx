@@ -22,6 +22,7 @@ import {
   IonLabel,
   IonList,
   IonModal,
+  IonSearchbar,
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
@@ -43,11 +44,21 @@ export function ModulePickerModal({
   onApply: (moduleIds: string[]) => void;
 }) {
   const [draft, setDraft] = useState<string[]>(selected);
+  const [filter, setFilter] = useState("");
 
-  // Re-seed the draft from the committed selection each time the modal opens.
+  // Re-seed the draft from the committed selection each time the modal opens, and clear any
+  // leftover filter so the full list is shown next time.
   useEffect(() => {
-    if (isOpen) setDraft(selected);
+    if (isOpen) {
+      setDraft(selected);
+      setFilter("");
+    }
   }, [isOpen, selected]);
+
+  // Filter is display-only — it narrows the shown rows, never the selection. A ticked module
+  // filtered out of view stays in the draft.
+  const needle = filter.trim().toLowerCase();
+  const shown = needle ? modules.filter((m) => m.title.toLowerCase().includes(needle)) : modules;
 
   const toggle = (id: string) =>
     setDraft((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id]));
@@ -82,6 +93,16 @@ export function ModulePickerModal({
             </IonButton>
           </IonButtons>
         </IonToolbar>
+        {/* A second toolbar keeps the filter fixed above the scrolling list. */}
+        <IonToolbar>
+          <IonSearchbar
+            className="module-filter"
+            value={filter}
+            placeholder="Filter by title"
+            debounce={0}
+            onIonInput={(e) => setFilter(e.detail.value ?? "")}
+          />
+        </IonToolbar>
       </IonHeader>
       <IonContent>
         <p className="caption" style={{ padding: "12px 16px 0" }}>
@@ -90,7 +111,7 @@ export function ModulePickerModal({
             : "No modules selected — you won't be able to start a game until you pick one."}
         </p>
         <IonList>
-          {modules.map((m) => (
+          {shown.map((m) => (
             <IonItem key={m.id} button onClick={() => toggle(m.id)}>
               <IonCheckbox slot="start" checked={draft.includes(m.id)} />
               <IonLabel>
@@ -99,6 +120,13 @@ export function ModulePickerModal({
               </IonLabel>
             </IonItem>
           ))}
+          {shown.length === 0 ? (
+            <IonItem lines="none">
+              <IonLabel className="ion-text-wrap">
+                <p>No modules match “{filter.trim()}”.</p>
+              </IonLabel>
+            </IonItem>
+          ) : null}
         </IonList>
       </IonContent>
     </IonModal>

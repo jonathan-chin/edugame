@@ -20,7 +20,9 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* Anchor content to the top. Vertical centering re-centres the whole column whenever its
+     height changes (e.g. filtering the module list), which reads as everything jumping. */
+  justify-content: flex-start;
   gap: 14px;
   max-width: 640px;
   margin: 0 auto;
@@ -194,15 +196,14 @@ body {
   height: auto;
 }
 
-/* Solo study: the question and its controls are one centered column.
-   `.center` is min-height:100%, so two of them stacked would be two full screens — the
-   learner would have to scroll past a void to reach "Check answer". The wrapper takes over
-   the centering and the inner blocks give it up. */
+/* Solo study: the question and its controls are one top-anchored column.
+   `.center` is min-height:100%, so two of them stacked would be two full screens — the wrapper
+   owns the layout and the inner blocks give up their own min-height. */
 .solo-flow {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .solo-flow > .center {
   min-height: 0;
@@ -235,6 +236,43 @@ body {
   --border-width: 2px;
   --padding-start: 22px;
   --padding-end: 22px;
+}
+
+/* Solo setup: the module list is a capped, scrollable region so a long catalogue doesn't push
+   the timers and start button off the screen. Shows roughly five items, then scrolls. */
+/* "Modules" heading with its "Clear all" button aligned to the right. */
+.module-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.module-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  /* No corner radius: rounded corners against the square item rows read inconsistently as the
+     list scrolls or a scrollbar appears. Square edges stay consistent. */
+  width: 100%;
+}
+/* IonList adds 8px block padding by default, which leaves the first/last item inset from the
+   scroll container edges while the scrollbar spans the full height — so they don't line up.
+   Zero it so the rows sit flush top and bottom. */
+.module-scroll ion-list {
+  padding-block: 0;
+}
+/* The filter input must read as a field, not blend into the page. A lighter fill plus a 1px
+   inset border (via box-shadow) makes it visible against the dark background. The `ion-searchbar`
+   qualifier is needed to out-specify Ionic's own scoped defaults (which set --background to the
+   page colour). */
+ion-searchbar.module-filter {
+  --background: rgba(255, 255, 255, 0.07);
+  --color: var(--ion-text-color);
+  --placeholder-color: var(--muted);
+  --icon-color: var(--muted);
+  --border-radius: 12px;
+  --box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  padding: 0;
 }
 
 /* Solo setup: the two timer settings on the module screen. */

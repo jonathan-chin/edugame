@@ -15,12 +15,14 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonSearchbar,
   IonSegment,
   IonSegmentButton,
   IonSpinner,
   IonText,
 } from "@ionic/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { getModules, getPool, setPool } from "../lib/api";
 import { ADVANCE_SECONDS_PRESETS, ANSWER_SECONDS_PRESETS, type SoloSettings } from "../lib/soloSettings";
 
@@ -67,6 +69,7 @@ export function ModulePicker({
     // take its answer rather than assuming ours stuck.
     onSuccess: (res) => qc.setQueryData(["pool"], res),
   });
+  const [filter, setFilter] = useState("");
 
   if (modules.isLoading || pool.isLoading) {
     return (
@@ -84,27 +87,55 @@ export function ModulePicker({
     save.mutate([...next]);
   };
 
+  // Filter is display-only: it narrows which modules are shown, never which are selected. A
+  // ticked module that's filtered out stays in the pool.
+  const needle = filter.trim().toLowerCase();
+  const shown = needle ? (modules.data ?? []).filter((m) => m.title.toLowerCase().includes(needle)) : (modules.data ?? []);
+
   return (
     <div className="center">
-      <IonText>
-        <h2 style={{ marginBottom: 4 }}>Modules</h2>
-        <p className="caption">Questions are drawn at random from whatever you tick.</p>
-      </IonText>
+      <div className="module-head">
+        <h2 style={{ margin: 0 }}>Modules</h2>
+        {/* Clears the whole selection, not just the filtered view. */}
+        <IonButton fill="clear" size="small" disabled={selected.size === 0} onClick={() => save.mutate([])}>
+          Clear all
+        </IonButton>
+      </div>
+      <p className="caption" style={{ marginTop: 4 }}>
+        Questions are drawn at random from whatever you tick.
+      </p>
 
-      <IonList style={{ background: "transparent" }}>
-        {modules.data?.map((m) => (
-          <IonItem key={m.id} lines="full" style={{ "--background": "var(--card)" } as React.CSSProperties}>
-            <IonCheckbox checked={selected.has(m.id)} onIonChange={() => toggle(m)} labelPlacement="end" justify="start">
-              <IonLabel>
-                <div>{m.title}</div>
-                <div className="caption" style={{ whiteSpace: "normal" }}>
-                  {m.description}
-                </div>
-              </IonLabel>
-            </IonCheckbox>
-          </IonItem>
-        ))}
-      </IonList>
+      <IonSearchbar
+        className="module-filter"
+        value={filter}
+        placeholder="Filter by title"
+        debounce={0}
+        onIonInput={(e) => setFilter(e.detail.value ?? "")}
+      />
+
+      {/* Capped scroll region so a long module list stays a few items tall instead of taking over
+          the setup screen; selection and the timers below stay reachable. */}
+      <div className="module-scroll">
+        <IonList style={{ background: "transparent" }}>
+          {shown.map((m) => (
+            <IonItem key={m.id} lines="full" style={{ "--background": "var(--card)" } as React.CSSProperties}>
+              <IonCheckbox checked={selected.has(m.id)} onIonChange={() => toggle(m)} labelPlacement="end" justify="start">
+                <IonLabel>
+                  <div>{m.title}</div>
+                  <div className="caption" style={{ whiteSpace: "normal" }}>
+                    {m.description}
+                  </div>
+                </IonLabel>
+              </IonCheckbox>
+            </IonItem>
+          ))}
+          {shown.length === 0 ? (
+            <p className="caption" style={{ padding: "12px 4px" }}>
+              No modules match “{filter.trim()}”.
+            </p>
+          ) : null}
+        </IonList>
+      </div>
 
       <div className="solo-settings">
         <div className="solo-setting">
