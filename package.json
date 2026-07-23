@@ -19,12 +19,14 @@
     "build:student": "yarn workspace @edugame/student build",
     "build:educator": "yarn workspace @edugame/educator build",
     "build": "yarn build:shared && yarn build:student && yarn build:educator",
+    "build:solo": "yarn build:shared && yarn build:student",
     "start": "node scripts/orchestrate.mjs",
     "dev": "node scripts/orchestrate.mjs",
     "report": "yarn workspace @edugame/reports report",
     "typecheck": "yarn workspaces foreach -A run typecheck",
     "build:module-api": "yarn workspace @edugame/module-api build",
-    "build:modules": "yarn workspace @edugame/modules build"
+    "build:modules": "yarn workspace @edugame/modules build",
+    "test": "yarn workspace @edugame/api test"
   },
   "dependencies": {
     "@ngrok/ngrok": "^1.4.1"

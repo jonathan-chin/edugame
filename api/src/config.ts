@@ -16,6 +16,11 @@ export interface Config {
   studentDist: string | null;
   /** Absolute path to the built educator bundle, or null to skip static serving. */
   educatorDist: string | null;
+  /**
+   * Solo study mode: one learner on one loopback-only port, no educator server, no tunnel.
+   * Set by the orchestrator's `--solo`.
+   */
+  solo: boolean;
 }
 
 export function loadConfig(): Config {
@@ -28,5 +33,6 @@ export function loadConfig(): Config {
     sessionsDir: process.env.SESSIONS_DIR?.trim() || path.resolve(process.cwd(), "sessions"),
     studentDist: process.env.STUDENT_DIST?.trim() || null,
     educatorDist: process.env.EDUCATOR_DIST?.trim() || null,
+    solo: process.env.SOLO === "1",
   };
 }

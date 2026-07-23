@@ -29,6 +29,8 @@ export interface RecordedQuestion {
   id: string;
   moduleId: string;
   skills: string[];
+  /** The term or concept the question was about, when the module names one. */
+  subject?: string;
   difficulty: number;
   answerFormat: AnswerFormat;
   prompt: RecordedContent;

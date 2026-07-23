@@ -8,8 +8,39 @@ import { type QuestionInstance, type RevealAnswer } from "@edugame/module-api";
 
 export type Phase = "lobby" | "question" | "revealed";
 
+/**
+ * How this server is being run, reported to clients so a single bundle can render the right
+ * shell: an educator-led class, or one person studying alone.
+ *
+ * This is a **hint, not a permission**. What a client may actually do is decided by which
+ * routes the server it is talking to has mounted — the classroom student server has no flow
+ * control at all, so a tampered client that claims to be in solo mode still gets 404s. See
+ * `createSoloApp`.
+ */
+export type GameMode = "classroom" | "solo";
+
+/**
+ * The single participant in a solo study session.
+ *
+ * A classroom mints a fresh random token per student so the server can tell them apart, key
+ * their answers, and survive impersonation. Solo has exactly one learner, so none of that
+ * applies — a per-session token buys nothing and, being minted in memory, goes stale the moment
+ * the server restarts (which is what made every submit 401). Instead the **solo server seeds
+ * this fixed participant** into its roster on every session start, so this token is always known
+ * and the client can submit under it with no join and no recovery.
+ *
+ * It is inert anywhere else: the tunneled classroom server never seeds it, so it is just an
+ * unknown token there and is rejected like any other.
+ */
+export const SOLO_STUDENT_TOKEN = "solo-student";
+
+/** Report label for a solo learner until they name themselves; the name only labels the CSV. */
+export const SOLO_STUDENT_DEFAULT_NAME = "Solo learner";
+
 export interface PublicGameState {
   session: string;
+  /** Which shell the client should render. Authoritative — never inferred client-side. */
+  mode: GameMode;
   phase: Phase;
   /** The current question with its answer key stripped. Null in the lobby. */
   question: QuestionInstance | null;

@@ -1,9 +1,10 @@
 /**
  * One-command launcher.
  *
- *   yarn start [seed] [--no-tunnel] [--skip-build]
+ *   yarn start [seed] [--no-tunnel] [--skip-build]   # classroom: educator + students
+ *   yarn start --solo [seed]                          # one learner studying alone (port 4500)
  *
- * Orchestration order (this is the tricky part the project is built around):
+ * Classroom orchestration (this is the tricky part the project is built around):
  *   1. Build shared + both client bundles (so the API can serve them same-origin).
  *   2. Start the API: student server on the tunneled port, educator server on localhost.
  *   3. Open an ngrok tunnel to the STUDENT port only (educator stays local & private).
@@ -12,6 +13,11 @@
  *
  * The student bundle is served by the API itself, so the ngrok URL is never baked into
  * a build — students load the app from the same origin its API lives on.
+ *
+ * Solo skips almost all of that: no educator bundle to build, no second port, and **no tunnel
+ * attempt at all** — not "a tunnel that fails", but a branch that never reaches ngrok. One
+ * loopback URL is the whole interface. There is no `--tunnel` flag to guard against, because
+ * tunnelling in solo mode is not a thing the launcher can be asked to do.
  */
 
 import { spawn } from "node:child_process";
@@ -27,6 +33,7 @@ const ROOT = path.resolve(__dirname, "..");
 const args = process.argv.slice(2);
 const seed = args.find((a) => !a.startsWith("--"));
 const noTunnel = args.includes("--no-tunnel");
+const solo = args.includes("--solo");
 const skipBuild = args.includes("--skip-build") || process.env.SKIP_BUILD === "1";
 
 const flagValue = (flag, fallback) => {
@@ -34,6 +41,11 @@ const flagValue = (flag, fallback) => {
   return hit ? Number(hit.slice(flag.length + 1)) : fallback;
 };
 const STUDENT_PORT = flagValue("--student-port", Number(process.env.STUDENT_PORT ?? 4000));
+// Solo listens somewhere else by default. Sharing :4000 with the classroom meant a browser
+// asked to open it could focus a *stale classroom tab* still sitting on that URL instead of
+// loading the solo app — and the two also have separate stored identities, so crossing them
+// over is confusing even when it works. `--student-port` still overrides.
+const SOLO_PORT = flagValue("--student-port", Number(process.env.SOLO_PORT ?? 4500));
 const EDUCATOR_PORT = flagValue("--educator-port", Number(process.env.EDUCATOR_PORT ?? 4100));
 
 const children = [];
@@ -110,11 +122,14 @@ function postLink(url, port) {
 
 async function main() {
   if (!skipBuild) {
-    console.log("[orchestrate] building shared + client bundles…");
-    await runToCompletion("yarn", ["build"], { cwd: ROOT });
+    // Solo never serves the educator app, so don't spend the time building it.
+    console.log(`[orchestrate] building shared + ${solo ? "student bundle" : "client bundles"}…`);
+    await runToCompletion("yarn", [solo ? "build:solo" : "build"], { cwd: ROOT });
   } else {
     console.log("[orchestrate] --skip-build: using existing bundles");
   }
+
+  if (solo) return startSolo();
 
   // The requested ports may already be taken (a leftover process, a second instance). Probe
   // from each requested port and use the next free one so the API never crashes on
@@ -175,6 +190,47 @@ async function main() {
   console.log("──────────────────────────────────────────────\n");
 
   if (process.platform === "darwin") run("open", [educatorUrl]);
+}
+
+/**
+ * Solo: one server, one port, bound to loopback. Nothing here mentions ngrok, an educator, or
+ * a join link — none of them exist in this mode, and printing them would just be noise for
+ * someone sitting alone with their own laptop.
+ */
+async function startSolo() {
+  const port = await findOpenPort(SOLO_PORT, "127.0.0.1");
+  if (port !== SOLO_PORT) console.log(`[orchestrate] port ${SOLO_PORT} in use → using ${port}`);
+
+  console.log("[orchestrate] starting solo study session…");
+  const api = run("yarn", ["workspace", "@edugame/api", "start"], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      SOLO: "1",
+      STUDENT_PORT: String(port),
+      ...(seed ? { SEED: seed } : {}),
+      SESSIONS_DIR: path.join(ROOT, "sessions"),
+      STUDENT_DIST: path.join(ROOT, "student", "dist"),
+    },
+  });
+
+  let apiReady = false;
+  api.on("exit", (code) => {
+    if (!apiReady) {
+      console.error(`[orchestrate] API exited during startup (code ${code}). See the log above.`);
+      shutdown();
+    }
+  });
+
+  await waitForHealth(port);
+  apiReady = true;
+
+  const url = `http://localhost:${port}`;
+  console.log("\n──────────────────────────────────────────────");
+  console.log(`  Study:  ${url}`);
+  console.log("──────────────────────────────────────────────\n");
+
+  if (process.platform === "darwin") run("open", [url]);
 }
 
 function shutdown() {

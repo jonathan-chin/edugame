@@ -193,3 +193,109 @@ body {
   width: 100%;
   height: auto;
 }
+
+/* Solo study: the question and its controls are one centered column.
+   `.center` is min-height:100%, so two of them stacked would be two full screens — the
+   learner would have to scroll past a void to reach "Check answer". The wrapper takes over
+   the centering and the inner blocks give it up. */
+.solo-flow {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.solo-flow > .center {
+  min-height: 0;
+}
+.solo-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px 20px;
+}
+
+/* Solo action buttons ("Next question" + auto-advance pause, or "Skip this one"): chunky, sized
+   to their content, and centered on the row rather than stretched to fill it. */
+.solo-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.solo-actions .solo-action {
+  margin: 0;
+  height: 56px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  --border-radius: 14px;
+  --border-width: 2px;
+  --padding-start: 22px;
+  --padding-end: 22px;
+}
+
+/* Solo setup: the two timer settings on the module screen. */
+.solo-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  margin-top: 4px;
+}
+.solo-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.solo-setting .setting-head {
+  font-weight: 600;
+}
+.solo-setting .caption {
+  margin: 0;
+}
+/* The start button stays in reach at the bottom of the viewport while the module list scrolls
+   behind it, so a long list never buries "Start studying". */
+.solo-start {
+  position: sticky;
+  bottom: 8px;
+  z-index: 2;
+}
+
+/* Click-to-rename header title (Google-Docs style). Both states inherit the toolbar title's
+   font/colour so editing doesn't shift the layout. */
+.name-title {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: text;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+.name-title-pencil {
+  font-size: 0.8em;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.name-title:hover .name-title-pencil,
+.name-title:focus-visible .name-title-pencil {
+  opacity: 0.55;
+}
+.name-title-input {
+  font: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-bottom: 2px solid var(--ion-color-primary);
+  border-radius: 4px 4px 0 0;
+  padding: 0 6px;
+  outline: none;
+  max-width: 70vw;
+}

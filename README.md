@@ -28,6 +28,9 @@ implementation (AI) verbatim.
   expires the **server** locks answering and reveals the answer — enforced server-side, so a
   client clock can't extend it. Clients render a live countdown (skew-corrected). 0 = off
   (manual reveal, the default).
+- **Solo study mode.** `yarn start --solo` runs the same question modules for one person: one
+  loopback-only port, no tunnel, no educator app — pick your modules, tap to answer, with optional
+  answer and auto-advance timers. See [Solo study](#solo-study).
 - **Live, self-healing roster.** Student names are unique per session; students send a
   heartbeat, so the count drops within a few seconds when someone logs out, closes the tab, or
   loses connection. Students can log out; the educator can end a game (finalizing its files),
@@ -43,8 +46,8 @@ length from the engine:
 | [`module-api/`](module-api) | **The contract** a question module implements: content model, seeded RNG, question/answer types, the `QuestionModule` interface, the registry factory. Depends on nothing. |
 | [`modules/`](modules) | **The plugins** — the stock question modules, plus their private chart/statistics helpers. Depends only on the contract. See [`modules/README.md`](modules/README.md). |
 | [`shared/`](shared) | Game-level types both servers and clients agree on: live state, WebSocket protocol, analytics/CSV shapes, session recording, name checks. Re-exports the contract; names no module. |
-| [`api/`](api) | Express. Two HTTP servers sharing one in-memory session: a **student** server (bound `0.0.0.0`, tunneled — serves the student bundle + student API) and an **educator** server (bound `127.0.0.1` — control + analytics). WebSockets push live state. |
-| [`student/`](student) | Ionic React app: join by name, answer, personal progress. Served by the API (same-origin → no ngrok URL baked in). |
+| [`api/`](api) | Express. Two HTTP servers sharing one in-memory session: a **student** server (bound `0.0.0.0`, tunneled — serves the student bundle + student API) and an **educator** server (bound `127.0.0.1` — control + analytics). In solo mode, one loopback-only server instead. WebSockets push live state. |
+| [`student/`](student) | Ionic React app: join by name, answer, personal progress. Served by the API (same-origin → no ngrok URL baked in). Carries the solo shell too, selected by server-reported mode. |
 | [`educator/`](educator) | Ionic React app (localhost): flow control, live analytics (Recharts), drag-to-anonymize toggle, and a projector view (question + join QR for the class). |
 | [`reports/`](reports) | Command-line report generator: turns recorded sessions into per-student and whole-class **PDF** summaries. |
 
@@ -97,6 +100,54 @@ module, compiled and type-checked with the package but deliberately left out of 
 never appears in the picker. [`modules/README.md`](modules/README.md) has the full guide: the rules
 that matter, how to register, and what to assert when checking your own module.
 
+## Solo study
+
+The same engine, for one person revising on their own:
+
+```bash
+yarn start --solo          # one URL: http://localhost:4500, localhost only
+yarn report --solo         # a study report from those sessions
+```
+
+Solo skips the tunnel and the educator app entirely and prints a single URL, on its own port
+(4500) so it never collides with a classroom run. The student bundle serves a different shell —
+chosen from a `mode` the **server** stamps into the served HTML, never a build flag and never a
+fetch the client could lose.
+
+**The study flow.** You name yourself once (it only labels your report — click the name in the
+header to change it), then the first screen is a setup: tick which modules to draw from and set
+two optional timers. Then you study: **tapping an option is your answer** — it commits, reveals,
+and stops the clock in one gesture (no separate "check" step, no changing your mind). "Next
+question" moves on.
+
+**The two timers.**
+
+- *Time to answer* — the existing per-question countdown, **enforced server-side** (it locks and
+  reveals when it expires, so a client clock can't extend it).
+- *Auto-advance after answer* — draws the next card on its own once the answer shows, with a
+  pause. This one is client-side (one learner, nothing to enforce). **Failsafe:** if the answer
+  timer runs out with no pick, auto-advance does **not** start — you may have walked away, and it
+  won't run the game (burning any per-question resources) unattended; it waits for a manual click.
+
+**Why it's a separate app, not a flag.** Flow control (`next`, `skip`, `reveal`, `pool`, `timer`)
+is what a classroom student must never reach — not because it leaks anything, but because it would
+let one student spoil answers or skip questions for everyone. Nothing authenticates those routes;
+they are simply **not mounted on the server students can reach**. Solo is a separate app
+(`createSoloApp`) on a loopback-only listener, so there is no runtime state in which the tunneled
+server has them. And solo has no roster to log into: it seeds a single participant under a fixed
+token (`SOLO_STUDENT_TOKEN`) so there is no join and nothing to go stale across a restart — a token
+the tunneled classroom server never seeds, so it is inert there.
+[`api/src/routes.test.ts`](api/src/routes.test.ts) asserts that route *absence* (and the token's
+inertness in classroom), which no typechecker can:
+
+```bash
+yarn test
+```
+
+Solo sessions are stamped `mode: "solo"` in their manifest, and the two report runs read
+different sets — private practice never lands in a class report, where it would shift the mean
+and the standing plot everyone else is measured against.
+
 ## Running it
 
 Prerequisites: Node 22+, Yarn 4 (`corepack enable`), and — for remote access — an
@@ -108,6 +159,7 @@ yarn start                 # build everything, boot the API, open the tunnel + e
 yarn start classroom-42    # ...with a fixed reproducibility seed
 yarn start --no-tunnel     # LAN only (no ngrok); students use http://<your-ip>:4000
 yarn start --skip-build    # reuse existing bundles (faster relaunch)
+yarn start --solo          # solo study: http://localhost:4500, no tunnel (see above)
 ```
 
 `yarn start` will:
@@ -141,6 +193,9 @@ Per session, written to `sessions/`:
 per student, each recreating the questions asked. Reports and `sessions/` are gitignored, since they
 carry student names.
 
+`yarn report --solo` writes only the per-student reports, and omits the class-standing plot from
+them: with a single learner there is no class to report on and nothing to be ranked against.
+
 ## Development
 
 ```bash
@@ -151,6 +206,7 @@ yarn workspace @edugame/api dev         # tsx watch (STUDENT_DIST/EDUCATOR_DIST 
 yarn workspace @edugame/student dev     # Vite dev server (proxies /api + /ws to :4000)
 yarn workspace @edugame/educator dev    # Vite dev server (proxies to :4100)
 yarn typecheck                          # typecheck all workspaces
+yarn test                               # API route-surface tests (what each server exposes)
 yarn report                             # generate PDF reports from recorded sessions
 ```
 

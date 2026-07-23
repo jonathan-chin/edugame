@@ -90,6 +90,27 @@ browser client cannot render an answer widget it has never heard of — so the c
 set of answer affordances and a module *chooses* one rather than inventing one. Open submissions
 instead, and every plugin has to ship client code.
 
+## A timed-out, unanswered question is omitted from progress (not counted wrong)
+
+If the per-question answer timer expires and the student never selected an option, **nothing is
+recorded** for them: `session.reveal()` grades only `currentAnswers` (the students who actually
+submitted), so no answer event is written. It therefore does not appear in their progress at
+all — not as answered, not as correct, not as wrong; it drops out of `answered`, `accuracy`, and
+the history. Same code for classroom and solo (`api/src/session.ts` `reveal`/`progress`).
+
+This is intended for a **classroom** (a student who ran out of time isn't penalised as if they
+guessed wrong). For **solo self-study** the opposite may be more honest — letting the clock run
+out is effectively "I didn't know it" — and today it's a consequence-free way to skip a question
+from your stats. Kept as-is 2026-07-22.
+
+Revisit options (not yet decided): leave it; or in solo, record a timeout as `isCorrect=0`; or
+record timeouts as their own third state ("timed out") distinct from right/wrong in the report.
+
+Related failsafe already in place (2026-07-22): a timed-out, unanswered reveal in solo does **not**
+start the auto-advance countdown — it waits for a manual "Next question" — so an accidental
+walk-away can't run the game (and burn per-question resources) unattended. See
+`student/src/SoloApp.tsx` (`useAutoAdvance` gated on `selected != null`).
+
 ## Interactive dashboard for reports (not yet built)
 
 The report generator produces PDFs only. An interactive dashboard was scoped alongside it but

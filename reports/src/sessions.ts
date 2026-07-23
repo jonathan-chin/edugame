@@ -16,6 +16,7 @@ import path from "node:path";
 import {
   ANSWER_CSV_COLUMNS,
   type AnswerEventRow,
+  type GameMode,
   parseSkillsCell,
   type RecordedQuestion,
   type SessionManifest,
@@ -40,6 +41,9 @@ export interface SessionSummary {
   csvBytes: number;
   answers: number;
   students: number;
+  /** How the session was run. Manifests written before solo mode existed have no `mode`; they
+   *  were all classroom sessions, so that is what a missing value reads as. */
+  mode: GameMode;
 }
 
 /** Parse a single CSV line, honoring quoted fields and doubled-quote escaping. */
@@ -128,6 +132,7 @@ export function listSessions(dir: string): SessionSummary[] {
       csvBytes: fs.statSync(csvPath).size,
       answers: rows.length,
       students: new Set(rows.map((r) => r.studentToken)).size,
+      mode: manifest?.mode ?? "classroom",
     });
   }
   return summaries.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());

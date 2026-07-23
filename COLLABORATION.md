@@ -1688,3 +1688,129 @@ are gitignored because they carry student names.
 every relative link resolves, and the template itself was run — 500 generated questions with no
 defects (four distinct options, exactly one power of two, grading right and wrong picks correctly)
 and the same seed twice producing an identical question.
+
+### Human — extending EduGame to a solo self-study tool
+
+The human observed that the same engine could empower a single student to study on their own, and
+asked what a flashcard-style solo use case would need and what would fall away. The reporting
+system should largely work for a solo run too; the answer timer still had a place; and solo mode
+should be a startup flag — `yarn dev --solo`.
+
+**Design decision — the privacy model, restated.** A question surfaced about what actually makes
+the classroom private. The AI had conflated two things and corrected itself: `/analytics` (educator
+server, `127.0.0.1`) is the real privacy surface — it returns every student's name and score. The
+flow controls (`next`, `skip`, `reveal`, `pool`, `timer`) are **authority/integrity**, not privacy:
+a student calling them could spoil answers, skip questions or swap the module pool, but nothing
+leaks. Both concerns evaporate with one local learner. The narrow constraint that remains: the solo
+flag must not change what classroom mode exposes.
+
+**Groundwork shipped first:** an optional `subject` on the question shape (`QuestionInstance`,
+mirrored onto `RecordedQuestion` and copied through by the CSV writer) — the stable identity a study
+tool needs, distinct from the per-draw `id`. It lands in the manifest with no CSV schema change, so
+per-subject analysis is possible later without a migration. No module populates it yet; it is
+deliberate forward plumbing.
+
+And `yarn report --solo`: it writes only the per-student reports and drops the class-standing plot,
+since comparing a learner to a "class" of themselves says nothing.
+
+### Human — the solo security model: capability is topology, not a flag
+
+Running `yarn dev --solo` initially did nothing (the flag was never parsed) and opened the ordinary
+classroom student client. The human wanted solo to need one URL for both playing and control, and
+to drop the ngrok/educator messaging. This became a deliberate design conversation about *where*
+capability comes from.
+
+**The model.** The classroom's integrity is not enforced by auth — there is none — but by
+**topology**: the flow-control routes exist only on the educator server, which is only ever bound to
+`127.0.0.1`. A student cannot grief because the route is not there to call.
+
+**AI implementation:** the routes were factored into `mountStudentRoutes` (identity, answer,
+progress) and `mountFlowRoutes` (modules, pool, timer, next, skip, reveal). `createStudentApp`
+(tunneled) mounts only the first — no flag, no branch that could ever add flow control to the
+internet-facing server. `createSoloApp` mounts both, on a `127.0.0.1`-literal listener, and is a
+*separate* factory the classroom path never constructs. The educator app reuses the same flow
+router. Which client shell to render is decided by a `mode` the server reports; the flow subset is
+never mounted on the server a classroom student can reach.
+
+**A bug that reshaped the mode signal.** The client first learned its mode by fetching `/api/state`,
+falling back to `classroom` on any error — so a single failed request rendered the *wrong app* for
+the whole page load, which is exactly what the auto-opened tab hit. The fix removed the race
+entirely: the server stamps `<meta name="edugame-mode">` into the served `index.html` (served
+`no-store`; hashed assets stay cacheable), and the client reads it synchronously before React runs.
+There is no failure mode — the shell and the routes behind it come from the same server and cannot
+disagree. Solo also moved to its own default port (4500) so a browser asked to open it can't focus a
+stale classroom tab.
+
+**Verified:** `api/src/routes.test.ts` asserts route *absence* over real HTTP — the tunneled student
+server 404s every flow route and `/analytics`; the educator and solo servers have them; the solo
+server reports `mode: "solo"`; the served document names its mode and deep links get the stamped
+document. Against a live server, `POST /api/{next,skip,reveal,pool,timer,analytics}` all 404 on the
+student port while the educator port serves them.
+
+### Human — the solo client: a setup screen, one-shot answering, two timers
+
+The human shaped the solo experience over several rounds. The first screen should be module
+selection; clicking "done" starts studying; the settings live there; and clicking an option should
+just *be* the answer — record it, reveal, stop any timer, no take-backs.
+
+**AI implementation.** The solo shell reuses the classroom's `PlayView` (the question render, SVG
+content, options, submission) rather than duplicating it — only the surround differs: a setup tab
+(module picker plus two timer settings, persisted to localStorage) that is the first view, and a
+study view whose controls are "Next question" and a pausable auto-advance. Answering is one-shot via
+an opt-in `revealOnAnswer` on the shared `PlayView`: the first tap commits and the parent reveals in
+the same gesture, which also stops the server timer; classroom keeps change-until-reveal. The two
+timers are *time to answer* (the existing server-enforced countdown) and *auto-advance after answer*
+(new, client-side, pausable — solo has one learner, so there is nothing to enforce and pause is a
+one-line toggle). Auto-advance only runs on the Study view, so reconfiguring on the Modules tab
+never advances questions unseen. The header name is editable in place (click it, Google-Docs style);
+because React's `onKeyDown` does not fire on an input slotted into Ionic's toolbar shadow DOM, Enter
+and Escape are caught with a native listener and every gesture commits on blur.
+
+**Verified live** in the real client: setup → start drew the first question with a live answer
+countdown; a tap committed, revealed and stopped the timer; auto-advance drew the next card and its
+pause held a countdown past its deadline without advancing; the name rename reached the CSV
+(`studentName`); and no take-backs after reveal.
+
+### Human — the fixed solo token
+
+The human asked whether a solo student needs a token at all, then proposed a dummy token handled
+appropriately. It was the better design: the per-session token was minted in memory, so a server
+restart orphaned it and every submit 401'd. (An earlier fix had the client silently re-join to heal
+a stale token; this replaced that whole apparatus.)
+
+**AI implementation:** a fixed `SOLO_STUDENT_TOKEN` seeded into the roster on every session start in
+solo mode, so it is always known — no join, nothing to go stale, and a restart re-seeds it. `join`
+in solo renames that one participant rather than minting. It stays safe because only the solo
+service seeds it; the tunneled classroom server never does, so the constant is an unknown, rejected
+token there. The client uses the constant directly and the stale-token recovery code was deleted.
+
+**Verified:** submit under the fixed token works immediately after a fresh restart with no join
+(`answerStatus: 200`); a rename relabels the same participant and reaches the CSV; tests assert the
+solo service seeds the token and the classroom service leaves it inert. A side benefit: a learner's
+sessions now share one token, so `yarn report --solo` unifies their history instead of fragmenting
+it per run.
+
+### Human — reducing layout jump, and a walk-away failsafe
+
+Two refinements closed out the solo work. First, presentation: the answer countdown moved below the
+options (so it no longer shoves the question down when it appears or expires), the "Tap your answer"
+prompt was removed, and the post-reveal buttons became a chunky content-width row — a solid "Next
+question" beside an outline pause. (A real bug surfaced here: React reused the same `ion-button`
+element across the Skip↔Next transition, leaving the fill stuck at the outline value; distinct
+`key`s and an explicit `fill="solid"` fixed it.)
+
+Second, and more important, the human flagged an edge case: with both an answer timer and
+auto-advance, a student who walks away mid-question would have the game run itself — a real risk if a
+module spends per-question resources (e.g. generation tokens). **Decision:** if the answer timer
+expires with no pick, auto-advance must not start; treat it as if there were no auto-advance timer,
+and require a manual "Next question". The signal is `selected` — a null selection at reveal means the
+learner did not answer — so auto-advance is gated on `revealed && selected != null`.
+
+The human also asked to document a related behavior: a timed-out, unanswered question is **omitted**
+from progress entirely (not counted wrong) because `reveal()` grades only the students who actually
+submitted. Recorded in `TODO.md` as intended for classrooms but debatable for solo, with the
+revisit options.
+
+**Verified live:** with auto-advance set to 10s, a timed-out reveal showed only "Next question" (no
+countdown) and stayed on the same question 13s later — the game halted for a manual click — while an
+*answered* reveal showed the "Pause" countdown and advanced normally.

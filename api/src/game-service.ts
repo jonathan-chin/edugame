@@ -5,7 +5,7 @@
  *   - votes/analytics -> educator only (kept off the public channel)
  */
 
-import type { PublicGameState, ServerMessage } from "@edugame/shared";
+import { type GameMode, type PublicGameState, type ServerMessage, SOLO_STUDENT_DEFAULT_NAME, SOLO_STUDENT_TOKEN } from "@edugame/shared";
 import type { SessionWriter } from "./csv-writer.js";
 import type { Hub } from "./hub.js";
 import type { GameSession } from "./session.js";
@@ -39,17 +39,36 @@ export class GameService {
   /** Last connected count broadcast, so the sweep only pushes state when it actually moves. */
   private lastConnectedCount = 0;
 
-  /** The live game. Replaced wholesale by reset(), so it is mutable (not readonly). */
-  session: GameSession;
-  private writer: SessionWriter;
+  /** The live game. Replaced wholesale by reset(), so it is mutable (not readonly). Assigned via
+   *  `adoptSession` in the constructor (hence the definite-assignment assertions). */
+  session!: GameSession;
+  private writer!: SessionWriter;
 
   /** `newSession` mints a fresh session + writer (new id → new files); called at startup
-   *  and again on every reset(). */
-  constructor(private readonly newSession: () => SessionBundle) {
-    const bundle = this.newSession();
+   *  and again on every reset().
+   *  @param mode reported to clients so they render the right shell. It changes nothing about
+   *         what this service will do — capability is decided by which app mounts which routes. */
+  /** The solo learner's display name (the CSV/report label). Updated by `join` in solo mode;
+   *  re-seeded onto each fresh session so a restart keeps the label until the client re-asserts it. */
+  private soloName: string = SOLO_STUDENT_DEFAULT_NAME;
+
+  constructor(private readonly newSession: () => SessionBundle, private readonly mode: GameMode = "classroom") {
+    this.adoptSession(this.newSession());
+  }
+
+  /** Take over a freshly minted session + writer. In solo mode this seeds the one fixed
+   *  participant, so the solo token is known from the very first request — no join required. */
+  private adoptSession(bundle: SessionBundle): void {
     this.session = bundle.session;
     this.writer = bundle.writer;
-    this.writer.writeManifest(this.session.manifest());
+    if (this.mode === "solo") this.session.seedSoloStudent(this.soloName);
+    this.persistManifest();
+  }
+
+  /** Write the manifest, stamped with the mode this server is running in. Every persist goes
+   *  through here so the stamp can never be forgotten on one path and present on another. */
+  private persistManifest(): void {
+    this.writer.writeManifest({ ...this.session.manifest(), mode: this.mode });
   }
 
   /** Absolute path of the current session's CSV (used for startup logging). */
@@ -63,10 +82,12 @@ export class GameService {
    * only this service knows who is *connected* (see presence below).
    */
   state(): PublicGameState {
-    return { ...this.session.publicState(), studentCount: this.connectedCount() };
+    return { ...this.session.publicState(), mode: this.mode, studentCount: this.connectedCount() };
   }
 
-  attachHubs(studentHub: Hub, educatorHub: Hub): void {
+  /** In solo mode there is no educator channel, so `educatorHub` is null and the
+   *  educator-only broadcasts (votes, analytics) simply go nowhere. */
+  attachHubs(studentHub: Hub, educatorHub: Hub | null): void {
     this.studentHub = studentHub;
     this.educatorHub = educatorHub;
   }
@@ -95,9 +116,19 @@ export class GameService {
   // ---- actions ----
 
   join(name: string) {
+    // Solo has one seeded participant, so "joining" is really just naming it: rename the fixed
+    // participant and hand back its constant token. No minting, so nothing to go stale.
+    if (this.mode === "solo") {
+      this.soloName = name;
+      this.session.seedSoloStudent(name);
+      this.lastSeen.set(SOLO_STUDENT_TOKEN, Date.now());
+      this.persistManifest();
+      this.broadcastState();
+      return { token: SOLO_STUDENT_TOKEN, name };
+    }
     const result = this.session.join(name);
     this.lastSeen.set(result.token, Date.now()); // present from the moment they join
-    this.writer.writeManifest(this.session.manifest());
+    this.persistManifest();
     this.broadcastState();
     // Also refresh analytics so the educator's roster ("Students") shows the newcomer right
     // away — otherwise the count in the control panel and the roster list disagree.
@@ -120,7 +151,7 @@ export class GameService {
 
   next(moduleId?: string) {
     this.session.nextQuestion(moduleId);
-    this.writer.writeManifest(this.session.manifest());
+    this.persistManifest();
     this.broadcastState();
     this.broadcastVotes();
     this.armTimer();
@@ -128,7 +159,7 @@ export class GameService {
 
   skip(moduleId?: string) {
     this.session.skipQuestion(moduleId);
-    this.writer.writeManifest(this.session.manifest());
+    this.persistManifest();
     this.broadcastState();
     this.broadcastVotes();
     this.armTimer();
@@ -142,7 +173,7 @@ export class GameService {
     const generated = this.session.currentGenerated();
     if (generated) this.session.addRecordedQuestion(this.writer.recordQuestion(generated.public, generated.key));
     this.writer.appendRows(rows);
-    this.writer.writeManifest(this.session.manifest());
+    this.persistManifest();
     this.studentHub?.broadcast({ type: "reveal", reveal });
     this.educatorHub?.broadcast({ type: "reveal", reveal });
     this.broadcastState();
@@ -153,7 +184,7 @@ export class GameService {
   end() {
     this.clearTimer();
     this.session.end();
-    this.writer.writeManifest(this.session.manifest());
+    this.persistManifest();
   }
 
   /** A student logs out: free their name/token, drop any pending answer, and refresh the
@@ -161,7 +192,7 @@ export class GameService {
   leave(token: string) {
     this.session.removeStudent(token);
     this.lastSeen.delete(token);
-    this.writer.writeManifest(this.session.manifest());
+    this.persistManifest();
     this.broadcastState();
     this.broadcastVotes();
     this.broadcastAnalytics();
@@ -206,10 +237,7 @@ export class GameService {
     this.studentHub?.broadcast({ type: "reset" });
     this.lastSeen.clear();
     this.lastConnectedCount = 0;
-    const bundle = this.newSession();
-    this.session = bundle.session;
-    this.writer = bundle.writer;
-    this.writer.writeManifest(this.session.manifest());
+    this.adoptSession(this.newSession());
     this.broadcastState();
     this.broadcastAnalytics();
   }

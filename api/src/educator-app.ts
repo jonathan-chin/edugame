@@ -2,16 +2,19 @@
  * The localhost-only Express app: the educator's control surface and full analytics.
  * This server is bound to 127.0.0.1 and never tunneled, so these endpoints are
  * physically unreachable from the internet — the human's chosen security model.
+ *
+ * Flow control (modules/pool/timer/next/skip/reveal) comes from the shared `mountFlowRoutes`,
+ * which the solo server mounts too. What makes those routes an educator privilege here is not
+ * anything in this file — it is that this app only ever listens on 127.0.0.1.
  */
 
-import fs from "node:fs";
-import path from "node:path";
 import type { ModuleRegistry } from "@edugame/shared";
 import cors from "cors";
 import express, { type Express } from "express";
 import QRCode from "qrcode";
+import { mountFlowRoutes } from "./flow-routes.js";
 import type { GameService } from "./game-service.js";
-import { errorHandler } from "./http-helpers.js";
+import { errorHandler, serveSpa } from "./http-helpers.js";
 
 export function createEducatorApp(service: GameService, educatorDist: string | null = null, registry: ModuleRegistry): Express {
   const app = express();
@@ -24,40 +27,9 @@ export function createEducatorApp(service: GameService, educatorDist: string | n
 
   api.get("/state", (_req, res) => res.json(service.state()));
 
-  api.get("/modules", (_req, res) => res.json(registry.catalog()));
-
-  api.get("/pool", (_req, res) => res.json({ moduleIds: service.session.getModulePool() }));
-
-  api.post("/pool", (req, res) => {
-    const ids = Array.isArray(req.body?.moduleIds) ? req.body.moduleIds.map(String) : [];
-    service.session.setModulePool(ids);
-    res.json({ moduleIds: service.session.getModulePool() });
-  });
+  mountFlowRoutes(api, service, registry);
 
   api.get("/analytics", (_req, res) => res.json(service.session.analytics()));
-
-  api.get("/timer", (_req, res) => res.json({ seconds: service.session.getTimer() }));
-
-  api.post("/timer", (req, res) => {
-    const seconds = Number(req.body?.seconds);
-    res.json(service.setTimer(Number.isFinite(seconds) ? seconds : 0));
-  });
-
-  api.post("/next", (req, res) => {
-    const moduleId = req.body?.moduleId ? String(req.body.moduleId) : undefined;
-    service.next(moduleId);
-    res.json(service.state());
-  });
-
-  api.post("/skip", (_req, res) => {
-    service.skip();
-    res.json(service.state());
-  });
-
-  api.post("/reveal", (_req, res) => {
-    service.reveal();
-    res.json(service.state());
-  });
 
   api.post("/end", (_req, res) => {
     service.end();
@@ -86,13 +58,7 @@ export function createEducatorApp(service: GameService, educatorDist: string | n
   app.use("/api", api);
 
   // Serve the built educator SPA same-origin on the localhost port.
-  if (educatorDist && fs.existsSync(educatorDist)) {
-    app.use(express.static(educatorDist));
-    app.get("*", (req, res, next) => {
-      if (req.path.startsWith("/api")) return next();
-      res.sendFile(path.join(educatorDist, "index.html"));
-    });
-  }
+  serveSpa(app, educatorDist, "classroom");
 
   app.use(errorHandler);
   return app;

@@ -37,6 +37,16 @@ export interface QuestionInstance {
    * toward each listed skill, so the per-skill totals can exceed the answer total.
    */
   skills: string[];
+  /**
+   * What this question is *about* — the term, concept or card behind it, e.g. "Foreign key".
+   *
+   * Optional, and distinct from `id`: an id is unique per draw, so two questions about the same
+   * term share nothing. A subject is the stable identity a study tool needs to say "you keep
+   * missing this one" rather than only "you are 68% on Week 4 definitions". Modules that ask about
+   * a discrete thing should set it; ones that do not (a freshly generated chart, say) can leave it
+   * unset.
+   */
+  subject?: string;
   /** 1 (easiest) .. 5 (hardest). */
   difficulty: number;
   prompt: Content;

@@ -283,7 +283,11 @@ export function classReportHtml(c: ClassReport, ctx: RenderCtx): string {
   return documentHtml("Class report", body);
 }
 
-export function studentReportHtml(s: StudentReport, cls: ClassReport, ctx: RenderCtx): string {
+/**
+ * @param solo omit the class-standing plot. Comparing a learner to a "class" of themselves says
+ *        nothing, so a solo study report drops it rather than printing a degenerate chart.
+ */
+export function studentReportHtml(s: StudentReport, cls: ClassReport, ctx: RenderCtx, solo = false): string {
   const body = `
     <header class="report-head">
       <h1>${esc(s.name)}</h1>
@@ -295,7 +299,7 @@ export function studentReportHtml(s: StudentReport, cls: ClassReport, ctx: Rende
       // an early exit, or skipped questions in a way a bare "answered" count cannot.
       { label: "Questions answered", value: `${s.answered} / ${cls.totalQuestions}` },
     ])}
-    ${classStanding(s.accuracy, cls.distribution)}
+    ${solo ? "" : classStanding(s.accuracy, cls.distribution)}
     ${groupSection("By module", s.byModule)}
     ${groupSection("By skill", s.bySkill)}
     ${groupSection("By difficulty", s.byDifficulty)}

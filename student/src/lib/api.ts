@@ -5,7 +5,7 @@
  * interstitial on API responses (a concern we flagged up front).
  */
 
-import type { PublicGameState, StudentProgress, Submission } from "@edugame/shared";
+import type { ModuleInfo, PublicGameState, StudentProgress, Submission } from "@edugame/shared";
 
 const HEADERS = {
   "Content-Type": "application/json",
@@ -59,4 +59,47 @@ export function getProgress(token: string): Promise<StudentProgress> {
 /** Log out: release this student's token and name on the server. */
 export function leaveGame(token: string): Promise<{ ok: true }> {
   return req("/leave", { method: "POST", body: JSON.stringify({ token }) });
+}
+
+// ---- solo study controls ----
+//
+// These exist only on the solo server (see api/src/solo-app.ts). On the classroom student
+// server the routes are not mounted at all, so calling them there 404s — which is exactly the
+// point: the client cannot grant itself flow control by deciding it is in solo mode. The shell
+// that uses them is chosen from the server-reported `mode`, and the server is the authority.
+
+export function getModules(): Promise<ModuleInfo[]> {
+  return req("/modules");
+}
+
+export function getPool(): Promise<{ moduleIds: string[] }> {
+  return req("/pool");
+}
+
+export function setPool(moduleIds: string[]): Promise<{ moduleIds: string[] }> {
+  return req("/pool", { method: "POST", body: JSON.stringify({ moduleIds }) });
+}
+
+/** Draw the next question. */
+export function nextQuestion(): Promise<PublicGameState> {
+  return req("/next", { method: "POST", body: "{}" });
+}
+
+/** Replace the current, unanswered question with a fresh one. */
+export function skipQuestion(): Promise<PublicGameState> {
+  return req("/skip", { method: "POST", body: "{}" });
+}
+
+/** Grade and show the answer. */
+export function revealAnswer(): Promise<PublicGameState> {
+  return req("/reveal", { method: "POST", body: "{}" });
+}
+
+/**
+ * Set the per-question answer timer (0 = no limit). This is the *server-enforced* one: when it
+ * expires the server locks and reveals, so it applies to the next question drawn. The
+ * after-reveal auto-advance is a separate, purely client-side timer (see `useAutoAdvance`).
+ */
+export function setAnswerTimer(seconds: number): Promise<{ seconds: number }> {
+  return req("/timer", { method: "POST", body: JSON.stringify({ seconds }) });
 }

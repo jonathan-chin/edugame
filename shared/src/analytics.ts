@@ -9,6 +9,7 @@
  */
 
 import type { RecordedQuestion } from "./recording.js";
+import type { GameMode } from "./state.js";
 
 export interface AnswerEventRow {
   timestamp: string; // ISO 8601
@@ -61,6 +62,15 @@ export function parseSkillsCell(cell: string): string[] {
 
 export interface SessionManifest {
   session: string;
+  /**
+   * How the session was run. Absent on manifests written before solo mode existed, which were
+   * all classroom sessions — read it as `?? "classroom"`.
+   *
+   * Reports rely on this: a student's private practice must not be blended into a class report,
+   * where it would shift the class mean and the standing plot every other student is measured
+   * against.
+   */
+  mode?: GameMode;
   seed: string;
   appVersion: string;
   startedAt: string;

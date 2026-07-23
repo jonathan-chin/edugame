@@ -24,6 +24,7 @@ import {
   type RevealInfo,
   type RNG,
   type SessionManifest,
+  SOLO_STUDENT_TOKEN,
   type StudentHistoryItem,
   type StudentProgress,
   type StudentStat,
@@ -116,6 +117,21 @@ export class GameSession {
 
   hasStudent(token: string): boolean {
     return this.students.has(token);
+  }
+
+  /**
+   * Seed (or rename) the one solo participant under the fixed `SOLO_STUDENT_TOKEN`. Idempotent,
+   * and it keeps the original join time on a rename. Called only by the solo server, on every
+   * session start — that is what makes the fixed token always known, so a solo learner never has
+   * to join and a server restart never orphans their token. See `SOLO_STUDENT_TOKEN`.
+   */
+  seedSoloStudent(name: string): void {
+    const existing = this.students.get(SOLO_STUDENT_TOKEN);
+    this.students.set(SOLO_STUDENT_TOKEN, {
+      token: SOLO_STUDENT_TOKEN,
+      name,
+      joinedAt: existing?.joinedAt ?? new Date().toISOString(),
+    });
   }
 
   /** Tokens of every student currently on the roster. */
@@ -291,7 +307,12 @@ export class GameSession {
 
   // ---- views ----
 
-  publicState(): PublicGameState {
+  /**
+   * The session's own view of the public state. `mode` is deliberately absent: the session
+   * models one game and has no idea how the process was launched. GameService, which does,
+   * stamps it on. Typing it as an Omit makes that a compile error rather than a forgotten field.
+   */
+  publicState(): Omit<PublicGameState, "mode"> {
     return {
       session: this.sessionId,
       phase: this.phase,

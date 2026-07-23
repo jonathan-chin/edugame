@@ -6,12 +6,20 @@
  * write a whole-class PDF plus one per student into `reports/out/`.
  *
  * `--json` skips rendering and dumps the model, for eyeballing the aggregation.
+ * `--solo` is the counterpart to a solo study run: one learner, so there is no class to report on
+ * and nothing to compare against. It writes only the per-student reports, without the class
+ * standing plot, and it reports on solo sessions.
+ *
+ * The two runs read different sessions, and that separation matters: a class report that
+ * silently absorbed someone's private practice would shift the class mean and the standing plot
+ * every other student is measured against.
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { select } from "@inquirer/prompts";
+import type { GameMode } from "@edugame/shared";
 import { buildModel } from "./aggregate.js";
 import { humanDate, humanSize, reportDirName, reportFilename } from "./format.js";
 import { htmlToPdf, closePdf } from "./pdf.js";
@@ -25,9 +33,18 @@ const OUT_DIR = process.env.EDUGAME_REPORTS_DIR ?? path.join(ROOT, "reports", "o
 
 async function main() {
   const jsonOnly = process.argv.includes("--json");
-  const sessions = listSessions(SESSIONS_DIR);
+  const solo = process.argv.includes("--solo");
+  const all = listSessions(SESSIONS_DIR);
+  // A class report covers classroom sessions; a solo report covers solo study. Say what was
+  // set aside rather than quietly narrowing the range the human picked from.
+  const wanted: GameMode = solo ? "solo" : "classroom";
+  const sessions = all.filter((s) => s.mode === wanted);
+  const skipped = all.length - sessions.length;
+  if (skipped > 0) {
+    console.error(`Ignoring ${skipped} ${solo ? "classroom" : "solo"} session${skipped === 1 ? "" : "s"} (run ${solo ? "without" : "with"} --solo for those).`);
+  }
   if (sessions.length === 0) {
-    console.error(`No sessions found in ${SESSIONS_DIR}`);
+    console.error(`No ${wanted} sessions found in ${SESSIONS_DIR}`);
     process.exit(1);
   }
 
@@ -86,18 +103,21 @@ async function main() {
   }
   fs.mkdirSync(runDir, { recursive: true });
 
-  const classFile = path.join(runDir, reportFilename(start, end, null));
-  await htmlToPdf(classReportHtml(model.class, ctx), classFile);
-  console.log(`  ✓ ${path.basename(classFile)}  (class)`);
+  if (!solo) {
+    const classFile = path.join(runDir, reportFilename(start, end, null));
+    await htmlToPdf(classReportHtml(model.class, ctx), classFile);
+    console.log(`  ✓ ${path.basename(classFile)}  (class)`);
+  }
 
   for (const student of model.students) {
     const file = path.join(runDir, reportFilename(start, end, student.name));
-    await htmlToPdf(studentReportHtml(student, model.class, ctx), file);
+    await htmlToPdf(studentReportHtml(student, model.class, ctx, solo), file);
     console.log(`  ✓ ${path.basename(file)}`);
   }
 
   await closePdf();
-  console.log(`\nDone. ${model.students.length + 1} report${model.students.length === 0 ? "" : "s"} in reports/out/${reportDirName(start, end)}/`);
+  const written = model.students.length + (solo ? 0 : 1);
+  console.log(`\nDone. ${written} report${written === 1 ? "" : "s"} in reports/out/${reportDirName(start, end)}/`);
 }
 
 main().catch(async (err) => {

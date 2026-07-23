@@ -1,7 +1,12 @@
 /**
- * The core student experience: see the shared question, pick an answer, change it freely
- * until the educator reveals, then see whether you were right. Submissions go over HTTP
- * (TanStack Query mutation); the WebSocket pushes the shared state and the reveal.
+ * The core student experience: see the shared question, pick an answer, then see whether you
+ * were right. Submissions go over HTTP (TanStack Query mutation); the WebSocket pushes the
+ * shared state and the reveal.
+ *
+ * Two modes, one component. In a classroom you can change your pick freely until the educator
+ * reveals — everyone answers on the same clock. Solo study is one-shot (`revealOnAnswer`): the
+ * first tap is your answer, and it reveals immediately (the parent handles the reveal via
+ * `onAnswered`, which also stops the timer). No take-backs, because there's no one to wait for.
  */
 
 import type { PublicGameState, RevealInfo } from "@edugame/shared";
@@ -18,6 +23,8 @@ export function PlayView({
   reveal,
   selected,
   onSelect,
+  revealOnAnswer = false,
+  onAnswered,
 }: {
   token: string;
   state: PublicGameState | null;
@@ -25,7 +32,11 @@ export function PlayView({
   /** The student's current pick, held in the parent so it survives a tab switch (it lives
    *  above PlayView, which unmounts when the "My progress" tab is shown). */
   selected: string | null;
-  onSelect: (optionId: string) => void;
+  onSelect: (optionId: string | null) => void;
+  /** One-shot solo mode: the first tap commits and reveals; the answer can't be changed. */
+  revealOnAnswer?: boolean;
+  /** Called after a successful one-shot submission, so the parent can reveal (and stop the timer). */
+  onAnswered?: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const question = state?.question ?? null;
@@ -36,7 +47,13 @@ export function PlayView({
 
   const mutation = useMutation({
     mutationFn: (optionId: string) => submitAnswer(token, { optionId }),
-    onError: () => setError("Couldn't submit — the answer may be locked."),
+    onSuccess: () => {
+      if (revealOnAnswer) onAnswered?.(); // commit → reveal, one gesture
+    },
+    onError: () => {
+      setError("Couldn't submit — the answer may be locked.");
+      if (revealOnAnswer) onSelect(null); // clear the frozen pick so a retry is possible
+    },
   });
 
   if (!question || state?.phase === "lobby") {
@@ -53,6 +70,9 @@ export function PlayView({
 
   const pick = (optionId: string) => {
     if (locked) return;
+    // One-shot: once a pick is made it's final (a reveal is on its way). Clearing on error
+    // above re-opens this. In classroom mode there's no freeze — you can change until reveal.
+    if (revealOnAnswer && selected != null) return;
     onSelect(optionId);
     mutation.mutate(optionId);
   };
@@ -68,20 +88,24 @@ export function PlayView({
     return classes.join(" ");
   };
 
+  // Status line under the options. Empty while answering (no "tap your answer" prompt), so the
+  // caption and the timer swap in the same spot on reveal rather than shoving the question around.
+  const caption = revealed
+    ? selected === reveal?.correctOptionId
+      ? "✅ Correct!"
+      : selected
+        ? "❌ Not this time."
+        : "Answer revealed."
+    : locked
+      ? "Answers are locked."
+      : selected
+        ? revealOnAnswer
+          ? "Checking…"
+          : "Answer saved — you can still change it."
+        : "";
+
   return (
     <div className="center">
-      {showTimer ? (
-        <div className={`timer${remaining <= 5 ? " urgent" : ""}`}>
-          <span className="timer-count">{remaining}s</span>
-          <div className="timer-track">
-            <div
-              className="timer-fill"
-              style={{ width: `${state?.timerSeconds ? (remaining / state.timerSeconds) * 100 : 0}%` }}
-            />
-          </div>
-        </div>
-      ) : null}
-
       <div style={{ fontSize: "1.25rem", fontWeight: 600 }}>
         <ContentView content={question.prompt} />
       </div>
@@ -102,19 +126,22 @@ export function PlayView({
         ))}
       </div>
 
-      <IonText className="caption" style={{ textAlign: "center" }}>
-        {revealed
-          ? selected === reveal?.correctOptionId
-            ? "✅ Correct!"
-            : selected
-              ? "❌ Not this time."
-              : "Answer revealed."
-          : locked
-            ? "Answers are locked."
-            : selected
-              ? "Answer saved — you can still change it."
-              : "Tap your answer."}
-      </IonText>
+      {/* Timer lives below the options so it doesn't push them down when it appears/disappears. */}
+      {showTimer ? (
+        <div className={`timer${remaining <= 5 ? " urgent" : ""}`}>
+          <span className="timer-count">{remaining}s</span>
+          <div className="timer-track">
+            <div
+              className="timer-fill"
+              style={{ width: `${state?.timerSeconds ? (remaining / state.timerSeconds) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      ) : caption ? (
+        <IonText className="caption" style={{ textAlign: "center" }}>
+          {caption}
+        </IonText>
+      ) : null}
 
       <IonToast isOpen={!!error} message={error ?? ""} duration={2000} color="danger" onDidDismiss={() => setError(null)} />
     </div>

@@ -4,14 +4,33 @@
     {
       "name": "edugame",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/orchestrate.mjs", "--no-tunnel", "--skip-build"],
+      "runtimeArgs": [
+        "scripts/orchestrate.mjs",
+        "--no-tunnel",
+        "--skip-build"
+      ],
       "port": 4000
     },
     {
       "name": "edugame-alt",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/orchestrate.mjs", "--no-tunnel", "--skip-build", "--student-port=4200", "--educator-port=4300"],
+      "runtimeArgs": [
+        "scripts/orchestrate.mjs",
+        "--no-tunnel",
+        "--skip-build",
+        "--student-port=4200",
+        "--educator-port=4300"
+      ],
       "port": 4200
+    },
+    {
+      "name": "edugame-solo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/orchestrate.mjs",
+        "--solo"
+      ],
+      "port": 4500
     }
   ]
 }
